@@ -1,0 +1,30 @@
+root = true
+
+[*]
+charset = utf-8
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{json,yml,yaml,csproj,props,slnx,xml,css,js,mjs}]
+indent_size = 2
+
+[*.cs]
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_style_prefer_primary_constructors = true:suggestion
+
+# Private fields are camelCase. The "no leading _" rule is enforced by CodingRulesTests (Roslyn cannot express it).
+dotnet_naming_rule.private_fields_no_underscore.symbols = private_fields
+dotnet_naming_rule.private_fields_no_underscore.style = camel_case_no_prefix
+dotnet_naming_rule.private_fields_no_underscore.severity = error
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private, private_protected
+dotnet_naming_style.camel_case_no_prefix.capitalization = camel_case
+
+# Async rules (Microsoft.VisualStudio.Threading.Analyzers) are hard errors.
+dotnet_diagnostic.VSTHRD002.severity = error
+dotnet_diagnostic.VSTHRD100.severity = error
+dotnet_diagnostic.VSTHRD110.severity = error
+dotnet_diagnostic.CS4014.severity = error
+dotnet_diagnostic.CS1998.severity = warning

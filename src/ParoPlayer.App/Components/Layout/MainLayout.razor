@@ -1,0 +1,13 @@
+@inherits LayoutComponentBase
+@inject ILibraryFolder LibraryFolder
+
+<div class="flex h-dvh flex-col bg-bg text-fg">
+    <main class="min-h-0 flex-1 overflow-y-auto pt-safe">
+        @Body
+    </main>
+    <BottomNav />
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync() => await LibraryFolder.EnsureCreatedAsync();
+}

@@ -1,0 +1,17 @@
+{
+  "name": "paroplayer-app",
+  "private": true,
+  "scripts": {
+    "build": "npm run build:vendor && npm run build:css",
+    "build:css": "tailwindcss -i Styles/app.css -o wwwroot/css/app.css --minify",
+    "build:vendor": "node scripts/copy-vendor.mjs",
+    "watch:css": "tailwindcss -i Styles/app.css -o wwwroot/css/app.css --watch"
+  },
+  "devDependencies": {
+    "@fontsource-variable/bricolage-grotesque": "^5.3.0",
+    "@fontsource-variable/dm-sans": "^5.3.0",
+    "@fortawesome/fontawesome-free": "^7.3.1",
+    "@tailwindcss/cli": "^4.3.4",
+    "tailwindcss": "^4.3.4"
+  }
+}

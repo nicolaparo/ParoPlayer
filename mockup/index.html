@@ -1,0 +1,479 @@
+<title>ParoPlayer Mockup</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=DM+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a phone frame on the left, screen index + per-screen feedback on the right. Dark-first, vinyl-amber accent. */
+:root{
+  --bg:#0c0e12; --panel:#14171d; --panel2:#1b1f27; --line:#272c36; --fg:#eceef2; --mute:#8d95a5;
+  --accent:#f4a24a; --accent-fg:#1a1204; --good:#52c28a; --warn:#e6b84a; --bad:#ee6b6b;
+  --display:"Bricolage Grotesque","DM Sans",system-ui,sans-serif; --body:"DM Sans",system-ui,sans-serif;
+  color-scheme:dark;
+}
+:root:not([data-theme="dark"]){ }
+@media (prefers-color-scheme: light){ :root:not([data-theme="dark"]){
+  --bg:#eceef2; --panel:#ffffff; --panel2:#f2f4f8; --line:#d9dde5; --fg:#14171d; --mute:#5f6777;
+  --accent:#c9741a; --accent-fg:#ffffff; --good:#1f8f5b; --warn:#a47a10; --bad:#c43d3d; color-scheme:light; } }
+:root[data-theme="light"]{
+  --bg:#eceef2; --panel:#ffffff; --panel2:#f2f4f8; --line:#d9dde5; --fg:#14171d; --mute:#5f6777;
+  --accent:#c9741a; --accent-fg:#ffffff; --good:#1f8f5b; --warn:#a47a10; --bad:#c43d3d; color-scheme:light; }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:14px;line-height:1.45;
+  padding-block:20px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1040px;margin:0 auto;display:grid;grid-template-columns:minmax(0,392px) minmax(0,1fr);gap:28px;align-items:start}
+@media(max-width:860px){.wrap{grid-template-columns:minmax(0,1fr)}}
+.head{max-width:1040px;margin:0 auto 18px}
+.head h1{font-size:28px}
+.head p{color:var(--mute);margin:6px 0 0;max-width:62ch}
+
+/* phone */
+.phone{width:100%;max-width:392px;height:780px;margin:0 auto;border-radius:38px;background:var(--panel);border:1px solid var(--line);
+  box-shadow:0 20px 50px rgba(0,0,0,.35);display:flex;flex-direction:column;overflow:hidden;position:relative}
+.status{height:26px;display:flex;justify-content:space-between;align-items:center;padding:0 22px;font-size:11px;color:var(--mute);flex:none}
+.screen{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:4px 16px 14px;scrollbar-width:thin}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0 10px}
+.top h2{font-size:24px}
+.iconbtn{width:34px;height:34px;border-radius:50%;background:var(--panel2);display:grid;place-items:center;flex:none}
+.iconbtn svg,.tab svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none}
+.chip{padding:6px 12px;border-radius:99px;background:var(--panel2);color:var(--mute);white-space:nowrap;font-weight:500;flex:none}
+.chip.on{background:var(--accent);color:var(--accent-fg)}
+.search{display:flex;gap:8px;align-items:center;background:var(--panel2);border-radius:12px;padding:0 12px;margin-bottom:10px}
+.search input{flex:1;min-width:0;background:none;border:0;color:var(--fg);font:inherit;padding:10px 0}
+.row{display:flex;align-items:center;gap:12px;padding:8px 0;width:100%;text-align:left}
+.row .meta{flex:1;min-width:0}
+.row .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .s{color:var(--mute);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row.playing .t{color:var(--accent)}
+.art{width:46px;height:46px;border-radius:8px;flex:none;display:grid;place-items:center;font-family:var(--display);font-weight:700;color:rgba(255,255,255,.9);font-size:15px}
+.art.lg{width:100%;height:auto;aspect-ratio:1;border-radius:18px;font-size:64px}
+.badge{font-size:10px;padding:2px 6px;border-radius:6px;background:var(--panel2);color:var(--mute);font-weight:600;flex:none}
+.badge.off{color:var(--good)}
+.sec{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin:14px 0 4px}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.card{text-align:left;display:block;width:100%;min-width:0}
+.card .art{width:100%;height:auto;aspect-ratio:1;border-radius:14px;font-size:30px}
+.card .t{font-weight:600;margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card .s{color:var(--mute);font-size:12px}
+
+/* mini player + tabs */
+.mini{flex:none;margin:0 10px 6px;background:var(--panel2);border-radius:14px;padding:8px 10px;display:flex;align-items:center;gap:10px;position:relative;overflow:hidden;text-align:left;width:calc(100% - 20px)}
+.mini .art{width:38px;height:38px;font-size:12px}
+.mini .bar{position:absolute;left:0;bottom:0;height:2px;background:var(--accent)}
+.tabs{flex:none;display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);padding:6px 6px 12px}
+.tab{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--mute);padding:4px}
+.tab.on{color:var(--accent)}
+
+/* now playing */
+.np{display:flex;flex-direction:column;gap:14px;padding-top:6px}
+.np h3{font-size:22px}
+.seek{width:100%;accent-color:var(--accent)}
+.times{display:flex;justify-content:space-between;color:var(--mute);font-size:11px;font-variant-numeric:tabular-nums;margin-top:-6px}
+.ctrl{display:flex;justify-content:space-between;align-items:center}
+.ctrl button{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:var(--fg)}
+.ctrl svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ctrl .play{width:64px;height:64px;background:var(--accent);color:var(--accent-fg)}
+.ctrl .play svg{fill:currentColor;stroke:none;width:28px;height:28px}
+.ctrl .on{color:var(--accent)}
+
+/* forms */
+.btn{background:var(--accent);color:var(--accent-fg);font-weight:600;padding:10px 16px;border-radius:12px}
+.btn.ghost{background:var(--panel2);color:var(--fg)}
+.btn.block{width:100%}
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.field label{font-size:11px;color:var(--mute);letter-spacing:.06em;text-transform:uppercase}
+.field input,.field select,.rule select,.rule input{background:var(--panel2);border:1px solid var(--line);color:var(--fg);font:inherit;border-radius:10px;padding:8px 10px;min-width:0;width:100%}
+.rule{display:grid;grid-template-columns:1.1fr 1fr 1fr auto;gap:6px;align-items:center;margin-bottom:6px}
+.rule .x{color:var(--bad);width:28px;height:28px}
+.panelbox{background:var(--panel2);border-radius:14px;padding:12px;margin:10px 0}
+.pb{height:5px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:6px}
+.pb i{display:block;height:100%;background:var(--accent);width:0}
+.toggle{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);gap:12px}
+.toggle small{display:block;color:var(--mute);font-size:12px}
+.sw{width:42px;height:24px;border-radius:99px;background:var(--line);position:relative;flex:none;transition:background .15s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .15s}
+.sw.on{background:var(--accent)}.sw.on::after{transform:translateX(18px)}
+.diff{display:grid;grid-template-columns:70px 1fr 1fr;gap:6px;font-size:12px;padding:5px 0;border-bottom:1px solid var(--line);align-items:center}
+.diff b{color:var(--mute);font-weight:500}
+.diff .new{color:var(--accent)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* personality: quick mixes, vinyl, waveform, equalizer */
+.mixes{display:flex;gap:10px;overflow-x:auto;padding:2px 0 12px;scrollbar-width:none}
+.mix{flex:none;width:128px;height:88px;border-radius:22px 22px 22px 6px;padding:10px;display:flex;flex-direction:column;justify-content:space-between;text-align:left;color:#fff}
+.mixt{font-family:var(--display);font-weight:700;font-size:16px;line-height:1.1}
+.mixs{font-size:11px;opacity:.85}
+.vinylwrap{position:relative;padding-right:18%}
+.vinylwrap .art{position:relative;z-index:2;box-shadow:0 14px 30px rgba(0,0,0,.45)}
+.disc{position:absolute;right:0;top:6%;width:84%;aspect-ratio:1;border-radius:50%;z-index:1;
+  background:repeating-radial-gradient(circle,#0b0b0e 0 2px,#17171c 3px 4px);display:grid;place-items:center;box-shadow:0 8px 20px rgba(0,0,0,.4)}
+.disc span{width:30%;aspect-ratio:1;border-radius:50%;box-shadow:inset 0 0 0 6px rgba(0,0,0,.18)}
+.disc.spin{animation:spin 6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.wave{position:relative;height:52px;cursor:pointer;touch-action:none}
+.bars{position:absolute;inset:0;display:flex;align-items:center;gap:2px}
+.bars i{flex:1;background:var(--line);border-radius:3px;min-width:2px}
+.bars.on i{background:var(--accent)}
+.eq{display:inline-flex;gap:2px;align-items:flex-end;height:14px;width:16px;flex:none}
+.eq i{flex:1;background:var(--accent);border-radius:1px;animation:eq .9s ease-in-out infinite}
+.eq i:nth-child(2){animation-delay:.25s}.eq i:nth-child(3){animation-delay:.5s}
+.eq.stop i{animation-play-state:paused}
+@keyframes eq{0%,100%{height:30%}50%{height:100%}}
+@media (prefers-reduced-motion:reduce){.disc.spin,.eq i{animation:none}}
+
+/* Android Auto & lock screen frames */
+.auto{background:#000;border-radius:14px;padding:12px;color:#fff;margin:6px 0}
+.auto .arow{display:flex;gap:10px;align-items:center;padding:9px 6px;border-bottom:1px solid #222}
+.auto .arow:last-child{border:0}
+.lock{background:linear-gradient(160deg,#243b55,#141e30);border-radius:18px;padding:16px;margin:6px 0;color:#fff}
+.notif{background:rgba(255,255,255,.12);backdrop-filter:blur(6px);border-radius:16px;padding:12px;display:flex;gap:10px;align-items:center;margin-top:10px}
+
+/* right column */
+.side{display:flex;flex-direction:column;gap:14px;min-width:0}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px}
+.box h3{font-size:16px;margin-bottom:8px}
+.nav{display:flex;flex-wrap:wrap;gap:6px}
+.nav button{padding:6px 11px;border-radius:99px;background:var(--panel2);color:var(--mute);font-weight:500;font-size:13px}
+.nav button.on{background:var(--accent);color:var(--accent-fg)}
+.nav button .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--good);margin-left:6px}
+.notes{color:var(--mute);margin:0;padding-left:18px}
+.notes li{margin:3px 0}
+textarea#fb{width:100%;min-height:96px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;color:var(--fg);font:inherit;padding:10px;resize:vertical}
+.fbrow{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+.status-line{color:var(--mute);font-size:12px}
+.sum{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.sum li{background:var(--panel2);border-radius:10px;padding:8px 10px;font-size:13px}
+.sum b{color:var(--accent);font-weight:600}
+</style>
+
+<div class="head">
+  <h1>ParoPlayer mockup</h1>
+  <p>Clickable prototype of the offline music player. Tap through every screen in the phone, then write what you want changed in the box on the right. Notes save per screen.</p>
+</div>
+
+<div class="wrap">
+  <div class="phone" id="phone" aria-label="Phone preview">
+    <div class="status"><span>9:41</span><span>offline · 5G off · 78%</span></div>
+    <div class="screen" id="screen"></div>
+    <button class="mini" id="mini" aria-label="Open now playing"></button>
+    <nav class="tabs" id="tabs"></nav>
+  </div>
+
+  <div class="side">
+    <div class="box">
+      <h3>Screens</h3>
+      <div class="nav" id="nav"></div>
+    </div>
+    <div class="box">
+      <h3 id="fbtitle">Feedback</h3>
+      <ul class="notes" id="notes"></ul>
+      <div style="height:10px"></div>
+      <label for="fb" class="status-line">Your feedback for this screen</label>
+      <textarea id="fb" placeholder="What should change? Layout, wording, missing features, anything."></textarea>
+      <div class="fbrow">
+        <button class="btn" id="fbsave">Save feedback</button>
+        <button class="btn ghost" id="fbcopy">Copy all</button>
+        <span class="status-line" id="fbstat"></span>
+      </div>
+    </div>
+    <div class="box">
+      <h3>All feedback so far</h3>
+      <ul class="sum" id="sum"><li class="status-line">Nothing saved yet.</li></ul>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+const ICON={
+ lib:'<svg viewBox="0 0 24 24"><path d="M4 5v14M9 5v14M14 6l5 13"/></svg>',
+ list:'<svg viewBox="0 0 24 24"><path d="M4 7h12M4 12h12M4 17h8M19 14v6M16 17h6"/></svg>',
+ dl:'<svg viewBox="0 0 24 24"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>',
+ set:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>',
+ search:'<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4"/></svg>',
+ back:'<svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>',
+ more:'<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>',
+ prev:'<svg viewBox="0 0 24 24"><path d="M6 5v14M19 5l-9 7 9 7z"/></svg>',
+ next:'<svg viewBox="0 0 24 24"><path d="M18 5v14M5 5l9 7-9 7z"/></svg>',
+ play:'<svg viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg>',
+ pause:'<svg viewBox="0 0 24 24"><path d="M7 4h4v16H7zM13 4h4v16h-4z"/></svg>',
+ shuf:'<svg viewBox="0 0 24 24"><path d="M3 7h4l10 10h4M3 17h4l3-3M14 10l3-3h4M18 4l3 3-3 3M18 14l3 3-3 3"/></svg>',
+ rep:'<svg viewBox="0 0 24 24"><path d="M4 11V9a3 3 0 013-3h13M17 3l3 3-3 3M20 13v2a3 3 0 01-3 3H4M7 21l-3-3 3-3"/></svg>',
+ x:'<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+ q:'<svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg>',
+ plus:'<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>'
+};
+const ic=(n)=>ICON[n]||'';
+const COLORS=['#7b5ea7','#d1603d','#2f8f83','#b5455f','#4a6fa5','#c28f2c','#5b8c5a','#8a5a44'];
+const T=[
+ {id:1,t:'Midnight City',a:'M83',al:'Hurry Up, We\'re Dreaming',g:'Electronic',y:2011,d:243,plays:48,added:30,rating:5,off:1},
+ {id:2,t:'Teardrop',a:'Massive Attack',al:'Mezzanine',g:'Trip Hop',y:1998,d:330,plays:31,added:400,rating:5,off:1},
+ {id:3,t:'Pink + White',a:'Frank Ocean',al:'Blonde',g:'R&B',y:2016,d:184,plays:12,added:20,rating:4,off:1},
+ {id:4,t:'Resonance',a:'HOME',al:'Odyssey',g:'Synthwave',y:2014,d:212,plays:77,added:600,rating:5,off:1},
+ {id:5,t:'Weightless',a:'Marconi Union',al:'Weightless',g:'Ambient',y:2011,d:480,plays:3,added:6,rating:3,off:1},
+ {id:6,t:'Genesis',a:'Justice',al:'Cross',g:'Electronic',y:2007,d:234,plays:22,added:9,rating:4,off:1},
+ {id:7,t:'Heroes',a:'David Bowie',al:'"Heroes"',g:'Rock',y:1977,d:371,plays:9,added:120,rating:5,off:1},
+ {id:8,t:'Nightcall',a:'Kavinsky',al:'OutRun',g:'Synthwave',y:2010,d:258,plays:64,added:15,rating:5,off:1},
+ {id:9,t:'Unfinished Sympathy',a:'Massive Attack',al:'Blue Lines',g:'Trip Hop',y:1991,d:310,plays:17,added:3,rating:4,off:1},
+ {id:10,t:'Lisztomania',a:'Phoenix',al:'Wolfgang Amadeus Phoenix',g:'Indie',y:2009,d:241,plays:5,added:2,rating:3,off:1}
+];
+const hue=(s)=>[...s].reduce((a,c)=>(a*31+c.charCodeAt(0))%360,7);
+const col=(s)=>`hsl(${hue(s)} 52% 40%)`;
+const dyn=(s)=>`hsl(${hue(s)} 78% 64%)`;
+const wave=(s)=>{let x=hue(s)+3;return Array.from({length:44},(_,i)=>{x=(x*9301+49297)%233280;return 14+Math.round((x/233280)*70*(0.55+0.45*Math.sin(i/6)))})};
+const ini=(s)=>s.replace(/[^A-Za-z0-9 ]/g,'').split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+const art=(s,cls='')=>`<div class="art ${cls}" style="background:linear-gradient(135deg,${col(s)},#161a22)">${ini(s)}</div>`;
+const mmss=(s)=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+
+const S={screen:'library',tab:'Songs',cur:T[0],playing:true,pos:62,shuffle:false,repeat:false,
+  rules:[{f:'plays',op:'>',v:'20'},{f:'added',op:'<',v:'365'}],match:'all',limit:'50',sort:'plays',
+  dl:{q:'',stage:0,p:0},discogs:0,toggles:{wifi:true,crossfade:true,gapless:true,auto:true,lock:true},plName:'Late Night Drive',
+  openPl:null,tr:{stage:0}};
+
+const SCREENS=[
+ {id:'library',name:'Library',tab:'Library',notes:['Tabs for Songs, Albums, Artists, Genres, Folders.','Search covers title, artist, album.','Quick mixes at the top are your smart playlists, one tap to open.','The song that is playing shows a live equalizer; every other row shows its length.','The whole app takes its accent colour from the current album art.']},
+ {id:'now',name:'Now playing',tab:null,notes:['A vinyl record slides out from behind the cover and spins while playing. Colours follow the album art.','The seek bar is a waveform: tap or drag it.','Full-screen player with queue, shuffle and repeat.','Plays through a native service, so it keeps going with the screen off.','Tap the queue icon to see and reorder the queue.']},
+ {id:'playlists',name:'Playlists',tab:'Playlists',notes:['Manual playlists and smart playlists in one list.','Smart playlists show a rule icon and update on their own.']},
+ {id:'playlist',name:'Playlist detail',tab:'Playlists',notes:['Open any playlist to see its tracks. Drag to reorder (manual playlists only).']},
+ {id:'smart',name:'Smart playlist builder',tab:'Playlists',notes:['Combine rules with AND / OR. Try changing a rule: the matching tracks update live.','Fields: plays, added days ago, genre, year, rating, artist, duration.','Order and limit: most played, newest, random.']},
+ {id:'download',name:'Download',tab:'Download',notes:['Paste a YouTube link or search by name. The app downloads the audio and converts it.','Queue continues in the background with a notification.']},
+ {id:'tags',name:'Tag editor (Discogs)',tab:null,notes:['Search Discogs, pick a release and choose which fields overwrite the current tags.','Fields that differ are highlighted. Cover art can be replaced too.']},
+ {id:'transfer',name:'Wi-Fi transfer',tab:'Settings',notes:['Start a temporary web server on the phone, open the address in a computer browser on the same Wi-Fi.','The phone asks you to allow each new computer. Nothing is shared before you tap Allow.','Once connected, the browser shows the library as a list: drop files to upload, or tap Download on a song.','Try it: Start, then use "Simulate computer connecting".']},
+ {id:'settings',name:'Settings',tab:'Settings',notes:['Wi-Fi only downloads, gapless, crossfade, Discogs token, storage.']},
+ {id:'auto',name:'Android Auto & lock screen',tab:null,notes:['Android Auto shows its own templated screens (not our UI). It lists the browse tree we provide: Recent, Playlists, Smart playlists, Albums, Artists.','On the phone, the lock screen and notification give transport controls.']}
+];
+
+const $=(id)=>document.getElementById(id);
+function songRow(t,i){return `<button class="row ${S.cur.id===t.id?'playing':''}" data-play="${t.id}">${art(t.al)}<div class="meta"><div class="t">${t.t}</div><div class="s">${t.a} · ${t.al}</div></div>${S.cur.id===t.id?`<span class="eq ${S.playing?'':'stop'}"><i></i><i></i><i></i></span>`:`<span class="s" style="color:var(--mute);font-size:12px;font-variant-numeric:tabular-nums">${mmss(t.d)}</span>`}</button>`}
+function top(title,left,right=''){return `<div class="top">${left?`<button class="iconbtn" data-go="${left}" aria-label="Back">${ic('back')}</button>`:''}<h2 style="flex:1">${title}</h2>${right}</div>`}
+
+function ruleMatch(){
+  let list=T.filter(t=>{
+    const res=S.rules.map(r=>{
+      const x=t[r.f]??''; const v=isNaN(+r.v)?String(r.v).toLowerCase():+r.v;
+      const xx=typeof x==='string'?x.toLowerCase():x;
+      if(r.op==='>')return xx>v; if(r.op==='<')return xx<v; if(r.op==='=')return xx===v;
+      if(r.op==='contains')return String(xx).includes(String(v)); return false;});
+    if(!res.length)return true;
+    return S.match==='all'?res.every(Boolean):res.some(Boolean)});
+  const s=S.sort;
+  if(s==='plays')list.sort((a,b)=>b.plays-a.plays); else if(s==='added')list.sort((a,b)=>a.added-b.added); else if(s==='random')list.sort((a,b)=>a.id*7%10-b.id*7%10);
+  return list.slice(0,+S.limit||50);
+}
+
+const VIEWS={
+ library(){
+  const tabs=['Songs','Albums','Artists','Genres','Folders'];
+  let body='';
+  if(S.tab==='Songs')body=T.map(songRow).join('');
+  else if(S.tab==='Albums')body=`<div class="cards">${[...new Map(T.map(t=>[t.al,t])).values()].map(t=>`<div class="card">${art(t.al)}<div class="t">${t.al}</div><div class="s">${t.a}</div></div>`).join('')}</div>`;
+  else if(S.tab==='Artists')body=[...new Set(T.map(t=>t.a))].map(a=>`<div class="row">${art(a)}<div class="meta"><div class="t">${a}</div><div class="s">${T.filter(t=>t.a===a).length} songs</div></div></div>`).join('');
+  else if(S.tab==='Genres')body=[...new Set(T.map(t=>t.g))].map(g=>`<div class="row">${art(g)}<div class="meta"><div class="t">${g}</div><div class="s">${T.filter(t=>t.g===g).length} songs</div></div></div>`).join('');
+  else body=['Music/Downloads','Music/Imported','Music/Soundtracks'].map(f=>`<div class="row"><div class="art" style="background:var(--panel2)">${ic('lib')}</div><div class="meta"><div class="t">${f}</div><div class="s">folder</div></div></div>`).join('');
+  const mixes=[['Late Night Drive','12 songs'],['Focus','8 songs'],['Recently Added','10 songs'],['Throwback','6 songs']];
+  return `<div class="top"><div style="flex:1;min-width:0"><div class="s" style="color:var(--mute)">Good evening, Nicola</div><h2>What's the mood?</h2></div><button class="iconbtn" data-go="settings" aria-label="Settings">${ic('set')}</button></div>
+   <div class="mixes">${mixes.map(m=>`<button class="mix" data-go="playlist" data-name="${m[0]}" style="background:linear-gradient(150deg,${dyn(m[0])},${col(m[0])})"><span class="mixt">${m[0]}</span><span class="mixs">✦ ${m[1]}</span></button>`).join('')}</div>
+   <div class="search">${ic('search')}<input placeholder="Search songs, artists, albums" aria-label="Search"></div>
+    <div class="chips">${tabs.map(t=>`<button class="chip ${S.tab===t?'on':''}" data-tab="${t}">${t}</button>`).join('')}</div>
+    <div class="s" style="color:var(--mute);font-size:12px;margin-bottom:2px">${T.length} songs · 38 min on this device · 1.4 GB</div>${body}`;
+ },
+ now(){
+  const c=S.cur;
+  return `<div class="top"><button class="iconbtn" data-go="library" aria-label="Close">${ic('back')}</button><span class="s" style="color:var(--mute)">Playing from Library</span><button class="iconbtn" data-go="tags" aria-label="Edit tags">${ic('more')}</button></div>
+  <div class="np"><div class="vinylwrap"><div class="disc ${S.playing?'spin':''}"><span style="background:${dyn(c.al)}"></span></div>${art(c.al,'lg')}</div>
+  <div><h3>${c.t}</h3><div class="s" style="color:var(--mute)">${c.a} · ${c.al}</div></div>
+  <div><div class="wave" id="wv" role="slider" aria-label="Seek" aria-valuemin="0" aria-valuemax="${c.d}" aria-valuenow="${S.pos}" tabindex="0"><div class="bars">${wave(c.t).map(h=>`<i style="height:${h}%"></i>`).join('')}</div><div class="bars on" id="wf" style="clip-path:inset(0 ${100-S.pos/c.d*100}% 0 0)">${wave(c.t).map(h=>`<i style="height:${h}%"></i>`).join('')}</div></div><div class="times"><span id="t1">${mmss(S.pos)}</span><span id="t2">-${mmss(c.d-S.pos)}</span></div></div>
+  <div class="ctrl"><button class="${S.shuffle?'on':''}" data-act="shuf" aria-label="Shuffle">${ic('shuf')}</button><button data-act="prev" aria-label="Previous">${ic('prev')}</button><button class="play" data-act="pp" aria-label="Play or pause">${ic(S.playing?'pause':'play')}</button><button data-act="next" aria-label="Next">${ic('next')}</button><button class="${S.repeat?'on':''}" data-act="rep" aria-label="Repeat">${ic('rep')}</button></div>
+  <div class="panelbox"><div class="sec" style="margin:0 0 4px">Up next</div>${T.filter(t=>t.id!==c.id).slice(0,3).map(t=>`<div class="row" style="padding:5px 0">${art(t.al).replace('class="art ','class="art ').replace('<div class="art','<div style="width:34px;height:34px;font-size:11px" class="art')}<div class="meta"><div class="t">${t.t}</div><div class="s">${t.a}</div></div></div>`).join('')}</div></div>`;
+ },
+ playlists(){
+  const pls=[['Late Night Drive','Smart · plays > 20, added < 365 days',1],['Road Trip','Manual · 24 songs',0],['Focus','Smart · genre is Ambient, rating ≥ 3',1],['Recently Added','Smart · added in last 30 days',1],['Sunday Morning','Manual · 12 songs',0]];
+  return top('Playlists','',`<button class="iconbtn" data-go="smart" aria-label="New playlist">${ic('plus')}</button>`)+
+   `<div class="chips"><button class="chip on">All</button><button class="chip">Manual</button><button class="chip">Smart</button></div>`+
+   pls.map(p=>`<button class="row" data-go="${p[2]?'playlist':'playlist'}" data-name="${p[0]}"><div class="art" style="background:linear-gradient(135deg,${col(p[0])},#161a22)">${p[2]?'<span style="font-size:20px">✦</span>':ini(p[0])}</div><div class="meta"><div class="t">${p[0]}</div><div class="s">${p[1]}</div></div></button>`).join('')+
+   `<div class="panelbox"><b>New:</b> <span class="s" style="color:var(--mute)">tap + to create a manual or smart playlist</span></div>`;
+ },
+ playlist(){
+  const l=ruleMatch();
+  return top(S.openPl||'Playlist','playlists',`<button class="iconbtn" data-go="smart" aria-label="Edit rules">${ic('more')}</button>`)+
+  `<div class="panelbox" style="display:flex;gap:10px;align-items:center"><div style="flex:1"><div class="t" style="font-weight:600">Smart playlist</div><div class="s" style="color:var(--mute);font-size:12px">${l.length} songs · refreshes automatically</div></div><button class="btn" data-act="playall">Play</button><button class="btn ghost" data-act="shuf2">Shuffle</button></div>`+l.map(songRow).join('');
+ },
+ smart(){
+  const l=ruleMatch();
+  const F={plays:'Play count',added:'Added (days ago)',year:'Year',rating:'Rating',duration:'Duration (s)',g:'Genre',a:'Artist'};
+  const key=(f)=>f==='duration'?'d':f;
+  return top('Smart playlist','playlists')+
+  `<div class="field"><label for="pln">Name</label><input id="pln" value="${S.plName}"></div>
+  <div class="field"><label for="mt">Songs must match</label><select id="mt" data-f="match"><option value="all" ${S.match==='all'?'selected':''}>All of the rules</option><option value="any" ${S.match==='any'?'selected':''}>Any of the rules</option></select></div>
+  <div class="sec">Rules</div>
+  ${S.rules.map((r,i)=>`<div class="rule"><select data-r="${i}" data-k="f">${Object.entries(F).map(([k,v])=>`<option value="${k}" ${r.f===k?'selected':''}>${v}</option>`).join('')}</select><select data-r="${i}" data-k="op">${['>','<','=','contains'].map(o=>`<option ${r.op===o?'selected':''}>${o}</option>`).join('')}</select><input data-r="${i}" data-k="v" value="${r.v}" aria-label="Value"><button class="x iconbtn" data-del="${i}" aria-label="Remove rule">${ic('x')}</button></div>`).join('')}
+  <button class="btn ghost block" data-act="addrule">+ Add rule</button>
+  <div class="field" style="margin-top:12px"><label for="so">Order by</label><select id="so" data-f="sort"><option value="plays" ${S.sort==='plays'?'selected':''}>Most played</option><option value="added" ${S.sort==='added'?'selected':''}>Newest first</option><option value="random" ${S.sort==='random'?'selected':''}>Random</option></select></div>
+  <div class="field"><label for="lm">Limit</label><select id="lm" data-f="limit"><option ${S.limit==='25'?'selected':''}>25</option><option ${S.limit==='50'?'selected':''}>50</option><option ${S.limit==='100'?'selected':''}>100</option></select></div>
+  <div class="sec">Preview · ${l.length} matches</div>
+  ${l.length?l.slice(0,5).map(songRow).join(''):'<div class="s" style="color:var(--mute)">No songs match these rules.</div>'}
+  <button class="btn block" style="margin-top:10px" data-go="playlist">Save playlist</button>`;
+ },
+ download(){
+  const d=S.dl; const stages=['Fetching info','Downloading audio','Converting to M4A','Tagging & cover art','Done'];
+  let q='';
+  if(d.stage>0){q=`<div class="panelbox"><div style="display:flex;gap:10px;align-items:center">${art('Cosmic Love','')}<div class="meta" style="flex:1;min-width:0"><div class="t" style="font-weight:600">Cosmic Love</div><div class="s" style="color:var(--mute);font-size:12px">Florence + The Machine · 4:17</div></div></div><div class="pb"><i style="width:${d.p}%"></i></div><div class="s" style="color:var(--mute);font-size:12px;margin-top:4px">${stages[Math.min(d.stage-1,4)]}${d.stage<5?' · '+Math.round(d.p)+'%':''}</div>${d.stage>=5?`<button class="btn block" style="margin-top:8px" data-go="tags">Fix tags with Discogs</button>`:''}</div>`}
+  return top('Download')+
+  `<div class="search">${ic('search')}<input id="dlq" placeholder="Paste a YouTube link or search" value="${d.q}" aria-label="Link or search"></div>
+  <div class="field"><label for="fmt">Format</label><select id="fmt"><option>M4A (AAC 256 kbps)</option><option>MP3 (320 kbps)</option><option>Opus (best quality)</option></select></div>
+  <button class="btn block" data-act="startdl">Download</button>${q}
+  <div class="sec">Recent downloads</div>
+  ${T.slice(0,3).map(songRow).join('')}
+  <div class="s" style="color:var(--mute);font-size:12px;margin-top:8px">Downloads run in the background. Wi-Fi only is ${S.toggles.wifi?'on':'off'}.</div>`;
+ },
+ tags(){
+  const rows=[['Title','Midnight City','Midnight City'],['Artist','M83','M83'],['Album','Hurry Up, We\'re…','Hurry Up, We\'re Dreaming'],['Year','','2011'],['Genre','Electronic','Electronic, Synth-pop'],['Label','','Mute'],['Track #','','2/22'],['Cover','low-res 300px','1400px']];
+  return top('Edit tags','now')+
+  `<div class="search">${ic('search')}<input value="M83 Midnight City" aria-label="Discogs search"></div>
+   <div class="panelbox" style="display:flex;gap:10px;align-items:center">${art('Hurry Up','')}<div class="meta" style="flex:1;min-width:0"><div class="t" style="font-weight:600">M83 – Hurry Up, We're Dreaming</div><div class="s" style="color:var(--mute);font-size:12px">Discogs release · 2011 · Mute · 2×CD</div></div><span class="badge">BEST MATCH</span></div>
+   <div class="sec">Current → Discogs</div>
+   ${rows.map(r=>`<div class="diff"><b>${r[0]}</b><span>${r[1]||'—'}</span><span class="${r[1]!==r[2]?'new':''}">${r[2]}</span></div>`).join('')}
+   <div style="display:flex;gap:8px;margin-top:12px"><button class="btn block" data-act="applytags">Apply 5 changes</button><button class="btn ghost" data-go="now">Cancel</button></div>
+   <div class="s" style="color:var(--mute);font-size:12px;margin-top:8px">Only the highlighted fields change. Tags are written into the file.</div>`;
+ },
+ transfer(){
+  const x=S.tr; const url='http://192.168.1.42:8080';
+  let ctl='';
+  if(x.stage===0)ctl=`<div class="panelbox"><div class="s" style="color:var(--mute)">The server runs only while this screen is active. Both devices must be on the same Wi-Fi.</div></div><button class="btn block" data-act="trstart">Start sharing</button>`;
+  else ctl=`<div class="panelbox"><div class="sec" style="margin:0 0 4px">Open in your computer's browser</div><div style="font-family:var(--display);font-size:20px;word-break:break-all">${url}</div><div class="s" style="color:var(--mute);font-size:12px;margin-top:4px">${x.stage===1?'Waiting for a computer…':x.stage===2?'A computer is asking to connect':'1 computer connected'}</div></div>
+  ${x.stage===1?`<button class="btn ghost block" data-act="trsim">Simulate computer connecting</button>`:''}
+  ${x.stage===2?`<div class="panelbox" style="border:1px solid var(--accent)"><b>Allow this connection?</b><div class="s" style="color:var(--mute);margin:4px 0 10px">Windows PC · Chrome · 192.168.1.17<br>Code shown on the computer: <b style="color:var(--fg)">4 8 2 7</b></div><div style="display:flex;gap:8px"><button class="btn block" data-act="trallow">Allow</button><button class="btn ghost block" data-act="trdeny">Deny</button></div></div>`:''}
+  ${x.stage===3?`<div class="sec">Computer browser view</div>
+  <div class="panelbox" style="padding:10px"><div style="border:2px dashed var(--line);border-radius:12px;padding:14px;text-align:center;color:var(--mute);margin-bottom:8px">Drop audio files here to add them to ParoPlayer</div>
+  ${T.slice(0,4).map(t=>`<div class="row" style="padding:6px 0"><div class="meta"><div class="t">${t.t}</div><div class="s">${t.a}</div></div><span class="badge">⬇ Download</span></div>`).join('')}
+  <div class="s" style="color:var(--mute);font-size:12px;margin-top:6px">Uploaded: Nightcall.m4a ✓ · 2 more waiting</div></div>`:''}
+  <button class="btn ghost block" style="margin-top:8px" data-act="trstop">${x.stage===3?'Disconnect and stop':'Stop sharing'}</button>`;
+  return top('Wi-Fi transfer','settings')+ctl;
+ },
+ settings(){
+  const tg=(k,t,s)=>`<div class="toggle"><div>${t}<small>${s}</small></div><button class="sw ${S.toggles[k]?'on':''}" data-tg="${k}" role="switch" aria-checked="${S.toggles[k]}" aria-label="${t}"></button></div>`;
+  return top('Settings')+
+  tg('wifi','Download on Wi-Fi only','Saves mobile data')+tg('gapless','Gapless playback','No silence between tracks')+tg('crossfade','Crossfade','5 seconds')+tg('auto','Android Auto','Show ParoPlayer in the car')+tg('lock','Lock screen controls','Notification and lock screen player')+
+  `<div class="sec">Discogs</div><div class="field"><label for="tok">Personal token</label><input id="tok" type="password" value="••••••••••••" aria-label="Discogs token"></div>
+  <div class="sec">Storage</div><div class="panelbox">1.4 GB used by 312 songs<div class="pb"><i style="width:34%"></i></div><div class="s" style="color:var(--mute);font-size:12px;margin-top:4px">Library folder: Music/ParoPlayer</div></div>
+  <button class="btn ghost block" data-go="transfer" style="margin-bottom:8px">Transfer with a computer (Wi-Fi)…</button>
+  <button class="btn ghost block">Import music from device…</button>`;
+ },
+ auto(){
+  const c=S.cur;
+  return top('Car & lock screen')+
+  `<div class="sec">Android Auto (rendered by the car)</div>
+  <div class="auto"><div style="font-size:12px;color:#aaa;margin-bottom:4px">ParoPlayer</div>
+   ${['Recently played','Playlists','Smart playlists','Albums','Artists'].map(x=>`<div class="arow"><span style="font-size:15px">${x}</span><span style="margin-left:auto;color:#777">›</span></div>`).join('')}</div>
+  <div class="auto" style="display:flex;gap:12px;align-items:center">${art(c.al,'')}<div class="meta" style="flex:1;min-width:0"><div style="font-weight:600">${c.t}</div><div style="color:#aaa;font-size:12px">${c.a}</div></div><span style="font-size:20px">⏮ ⏸ ⏭</span></div>
+  <div class="sec">Phone lock screen</div>
+  <div class="lock"><div style="text-align:center;font-size:44px;font-weight:300">23:48</div><div style="text-align:center;opacity:.7;margin-bottom:8px">Thursday 5 November</div>
+   <div class="notif">${art(c.al,'')}<div class="meta" style="flex:1;min-width:0"><div style="font-weight:600">${c.t}</div><div style="opacity:.7;font-size:12px">${c.a}</div></div><span style="font-size:18px">⏮ ${S.playing?'⏸':'▶'} ⏭</span></div></div>`;
+ }
+};
+
+function renderTabs(){
+  const cfg=[['library','Library','lib'],['playlists','Playlists','list'],['download','Download','dl'],['settings','Settings','set']];
+  const active=(SCREENS.find(s=>s.id===S.screen)||{}).tab;
+  $('tabs').innerHTML=cfg.map(c=>`<button class="tab ${active===({library:'Library',playlists:'Playlists',download:'Download',settings:'Settings'})[c[0]]?'on':''}" data-go="${c[0]}">${ic(c[2])}${c[1]}</button>`).join('');
+}
+function renderMini(){
+  const c=S.cur; const m=$('mini'); m.hidden=S.screen==='now';
+  m.innerHTML=`${art(c.al)}<div class="meta" style="flex:1;min-width:0"><div class="t" style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.t}</div><div class="s" style="color:var(--mute);font-size:12px">${c.a}</div></div><span class="iconbtn" data-act="pp" style="background:var(--accent);color:var(--accent-fg)">${ic(S.playing?'pause':'play')}</span><i class="bar" id="mbar" style="width:${S.pos/c.d*100}%"></i>`;
+}
+function render(keepScroll){
+  const sc=$('screen'); const st=keepScroll?sc.scrollTop:0;
+  sc.innerHTML=VIEWS[S.screen]();
+  const ph=$('phone'); const d=dyn(S.cur.al);
+  ph.style.setProperty('--accent',d); ph.style.setProperty('--accent-fg','#10121a');
+  sc.style.background=S.screen==='now'?`radial-gradient(120% 60% at 50% 0%,${col(S.cur.al)},transparent 70%)`:'none';
+  sc.scrollTop=st; renderTabs(); renderMini(); renderSide();
+}
+function renderSide(){
+  const sc=SCREENS.find(s=>s.id===S.screen);
+  $('nav').innerHTML=SCREENS.map(s=>`<button class="${s.id===S.screen?'on':''}" data-go="${s.id}">${s.name}${FB[s.id]?'<span class="dot"></span>':''}</button>`).join('');
+  $('fbtitle').textContent='Feedback · '+sc.name;
+  $('notes').innerHTML=sc.notes.map(n=>`<li>${n}</li>`).join('');
+  if(document.activeElement!==$('fb')&&$('fb').dataset.s!==S.screen){$('fb').value=FB[S.screen]||'';$('fb').dataset.s=S.screen}
+  const items=SCREENS.filter(s=>FB[s.id]);
+  $('sum').innerHTML=items.length?items.map(s=>`<li><b>${s.name}</b><br>${esc(FB[s.id])}</li>`).join(''):'<li class="status-line">Nothing saved yet.</li>';
+}
+const esc=(s)=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+/* events */
+document.addEventListener('click',e=>{
+  const el=e.target.closest('[data-go],[data-tab],[data-play],[data-act],[data-tg],[data-del]');
+  if(!el)return;
+  if(el.dataset.go){ if(el.dataset.name)S.openPl=el.dataset.name; S.screen=el.dataset.go; render(); return}
+  if(el.dataset.tab){S.tab=el.dataset.tab;render();return}
+  if(el.dataset.play){S.cur=T.find(t=>t.id==el.dataset.play);S.pos=0;S.playing=true;S.screen='now';render();return}
+  if(el.dataset.tg){S.toggles[el.dataset.tg]=!S.toggles[el.dataset.tg];render(true);return}
+  if(el.dataset.del!==undefined){S.rules.splice(+el.dataset.del,1);render(true);return}
+  const a=el.dataset.act;
+  if(a==='pp'){e.stopPropagation();S.playing=!S.playing;render(true)}
+  else if(a==='shuf'){S.shuffle=!S.shuffle;render(true)}
+  else if(a==='rep'){S.repeat=!S.repeat;render(true)}
+  else if(a==='next'||a==='prev'){const i=T.findIndex(t=>t.id===S.cur.id);S.cur=T[(i+(a==='next'?1:T.length-1))%T.length];S.pos=0;render(true)}
+  else if(a==='playall'||a==='shuf2'){const l=ruleMatch();if(l[0]){S.cur=l[0];S.pos=0;S.playing=true;S.screen='now';render()}}
+  else if(a==='addrule'){S.rules.push({f:'rating',op:'>',v:'3'});render(true)}
+  else if(a==='startdl'){S.dl={q:$('dlq').value,stage:1,p:0};render(true)}
+  else if(a==='trstart'){S.tr.stage=1;render(true)}
+  else if(a==='trsim'){S.tr.stage=2;render(true)}
+  else if(a==='trallow'){S.tr.stage=3;render(true)}
+  else if(a==='trdeny'){S.tr.stage=1;render(true)}
+  else if(a==='trstop'){S.tr.stage=0;render(true)}
+  else if(a==='applytags'){S.screen='now';render()}
+});
+$('mini').addEventListener('click',e=>{ if(e.target.closest('[data-act]'))return; S.screen='now';render()});
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.dataset.r!==undefined){S.rules[+t.dataset.r][t.dataset.k]=t.value;render(true)}
+  else if(t.dataset.f){S[t.dataset.f]=t.value;render(true)}
+  else if(t.id==='pln'){S.plName=t.value}
+});
+let scrub=false;
+const seekTo=(e)=>{const w=$('wv');if(!w)return;const r=w.getBoundingClientRect();S.pos=Math.round(Math.min(1,Math.max(0,(e.clientX-r.left)/r.width))*S.cur.d);$('wf').style.clipPath=`inset(0 ${100-S.pos/S.cur.d*100}% 0 0)`;$('t1').textContent=mmss(S.pos);$('t2').textContent='-'+mmss(S.cur.d-S.pos)};
+document.addEventListener('pointerdown',e=>{if(e.target.closest('#wv')){scrub=true;seekTo(e)}});
+document.addEventListener('pointermove',e=>{if(scrub)seekTo(e)});
+document.addEventListener('pointerup',()=>{scrub=false});
+
+/* ticking player + fake download */
+setInterval(()=>{
+  if(S.playing){S.pos=Math.min(S.cur.d,S.pos+1);const sk=$('wf');if(sk){sk.style.clipPath=`inset(0 ${100-S.pos/S.cur.d*100}% 0 0)`;$('t1').textContent=mmss(S.pos);$('t2').textContent='-'+mmss(S.cur.d-S.pos)}const b=$('mbar');if(b)b.style.width=(S.pos/S.cur.d*100)+'%'}
+  if(S.dl.stage>0&&S.dl.stage<5){S.dl.p+=8;if(S.dl.p>=100){S.dl.p=0;S.dl.stage++}if(S.screen==='download')render(true)}
+},1000);
+
+/* feedback storage: shared db when available, localStorage otherwise */
+let FB={}, coll=null;
+const LS='paroplayer-mock-fb';
+try{FB=JSON.parse(localStorage.getItem(LS)||'{}')}catch(_){FB={}}
+function setStat(m){$('fbstat').textContent=m}
+$('fbsave').addEventListener('click',async()=>{
+  const text=$('fb').value.trim(); const id=S.screen; const name=SCREENS.find(s=>s.id===id).name;
+  if(text)FB[id]=text; else delete FB[id];
+  try{localStorage.setItem(LS,JSON.stringify(FB))}catch(_){}
+  renderSide();
+  if(coll){
+    try{ if(text) await coll.doc(id).set({screen:name,text,at:new Date().toISOString()}); else await coll.doc(id).delete(); setStat('Saved. Claude can read it.') }
+    catch(err){ setStat('Saved here only ('+(err&&err.code||'offline')+'). Use Copy all and paste it to Claude.') }
+  } else setStat('Saved in this browser. Use Copy all and paste it to Claude.');
+});
+$('fbcopy').addEventListener('click',async()=>{
+  const txt=SCREENS.filter(s=>FB[s.id]).map(s=>`## ${s.name}\n${FB[s.id]}`).join('\n\n')||'(no feedback yet)';
+  try{await navigator.clipboard.writeText(txt);setStat('Copied.')}catch(_){ $('fb').value=txt; $('fb').select(); setStat('Select and copy the text above.') }
+});
+(async()=>{
+  try{
+    const db=await window.claude?.use?.('db'); if(!db)return;
+    coll=db.collection('feedback');
+    let done=false; const t=setTimeout(()=>{done=true},10000);
+    coll.onSnapshot(snap=>{clearTimeout(t);snap.docs.forEach(d=>{const v=d.data();if(v&&v.text&&FB[d.id]!==v.text){FB[d.id]=v.text}});
+      try{localStorage.setItem(LS,JSON.stringify(FB))}catch(_){} $('fb').dataset.s='';renderSide()},()=>{});
+  }catch(_){}
+})();
+
+render();
+})();
+</script>

@@ -1,0 +1,13 @@
+<Project>
+
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Enforces: no .Result / GetAwaiter().GetResult() (VSTHRD002), no fire-and-forget (VSTHRD110), no async void (VSTHRD100). -->
+    <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="18.12.1" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

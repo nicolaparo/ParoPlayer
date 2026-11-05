@@ -1,0 +1,10 @@
+bin/
+obj/
+node_modules/
+.vs/
+*.user
+*.suo
+*.keystore
+*.jks
+.idea/
+.claude/settings.local.json

@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+/* Class names are scanned from the Razor sources. Always write full literal class names in markup. */
+@source "../Components";
+
+@font-face {
+  font-family: "Bricolage Grotesque Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url("../fonts/bricolage-grotesque-latin-wght-normal.woff2") format("woff2-variations");
+}
+
+@font-face {
+  font-family: "DM Sans Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 1000;
+  src: url("../fonts/dm-sans-latin-wght-normal.woff2") format("woff2-variations");
+}
+
+/* Dark-first palette from the mockup. --accent is overridden per track later. */
+:root {
+  --accent: #f4a24a;
+}
+
+@theme {
+  --font-sans: "DM Sans Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Bricolage Grotesque Variable", "DM Sans Variable", system-ui, sans-serif;
+  --color-bg: #0c0e12;
+  --color-panel: #14171d;
+  --color-panel2: #1b1f27;
+  --color-line: #272c36;
+  --color-fg: #eceef2;
+  --color-mute: #8d95a5;
+  --color-accent: var(--accent);
+}
+
+@layer base {
+  html,
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    overscroll-behavior: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+#blazor-error-ui {
+  display: none;
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 1000;
+  padding: 0.75rem 1rem;
+  background: var(--color-panel2);
+  color: var(--color-fg);
+}

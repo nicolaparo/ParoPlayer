@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ParoPlayer.Core/ParoPlayer.Core.csproj" />
+    <Project Path="src/ParoPlayer.App/ParoPlayer.App.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ParoPlayer.Core.Tests/ParoPlayer.Core.Tests.csproj" />
+  </Folder>
+</Solution>

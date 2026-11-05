@@ -1,0 +1,62 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+    <PropertyGroup>
+        <!-- Android is the product; Windows is only the local dev/preview target. -->
+        <TargetFrameworks>net11.0-android</TargetFrameworks>
+        <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net11.0-windows10.0.19041.0</TargetFrameworks>
+
+        <OutputType>Exe</OutputType>
+        <RootNamespace>ParoPlayer.App</RootNamespace>
+        <UseMaui>true</UseMaui>
+        <SingleProject>true</SingleProject>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <EnableDefaultCssItems>false</EnableDefaultCssItems>
+        <Nullable>enable</Nullable>
+
+        <!-- Generate C# from XAML at compile time (faster builds and startup). -->
+        <MauiXamlInflator>SourceGen</MauiXamlInflator>
+
+        <ApplicationTitle>ParoPlayer</ApplicationTitle>
+        <ApplicationId>com.nicolaparo.paroplayer</ApplicationId>
+
+        <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+        <ApplicationVersion>1</ApplicationVersion>
+
+        <!-- Unpackaged on Windows: run with `dotnet build -t:Run`, no MSIX needed. -->
+        <WindowsPackageType>None</WindowsPackageType>
+
+        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
+        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
+        <TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#0c0e12" />
+        <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#0c0e12" BaseSize="128,128" />
+        <MauiImage Include="Resources\Images\*" />
+        <MauiFont Include="Resources\Fonts\*" />
+        <MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="$(MauiVersion)" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\ParoPlayer.Core\ParoPlayer.Core.csproj" />
+    </ItemGroup>
+
+    <!-- Tailwind: wwwroot/css/app.css is generated AND committed (wwwroot is globbed at evaluation time,
+         so the file must already exist on a fresh clone). When node_modules is present, rebuild it
+         whenever a Razor file or Styles/app.css changed. Run `npm install` once to enable this. -->
+    <ItemGroup>
+        <TailwindInputs Include="Styles\app.css;Components\**\*.razor" />
+    </ItemGroup>
+    <Target Name="BuildTailwind" BeforeTargets="BeforeBuild" Condition="Exists('$(MSBuildProjectDirectory)\node_modules')"
+            Inputs="@(TailwindInputs)" Outputs="wwwroot\css\app.css">
+        <Exec Command="npm run build:css" WorkingDirectory="$(MSBuildProjectDirectory)" />
+    </Target>
+
+</Project>
