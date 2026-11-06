@@ -136,6 +136,39 @@ public sealed class AndroidPlayerService : IPlayerService, IAsyncDisposable
         }
     }, cancellationToken);
 
+    /// <summary>
+    /// ExoPlayer moves on to the next item by itself when the current one is removed. When nothing is left the
+    /// player is stopped and the service shut down so no dead notification stays behind.
+    /// </summary>
+    public Task RemoveTracksAsync(IReadOnlyCollection<Guid> trackIds, CancellationToken cancellationToken = default) => ChangeAsync(player =>
+    {
+        if (queue is null || player.MediaItemCount != queue.Order.Count)
+        {
+            return;
+        }
+
+        queue.MoveTo(player.CurrentMediaItemIndex);
+        var removal = queue.Remove(trackIds);
+        if (removal.IsEmpty)
+        {
+            player.Stop();
+            player.ClearMediaItems();
+            queue = null;
+            Android.App.Application.Context.StopService(new Intent(Android.App.Application.Context, typeof(PlaybackService)));
+            return;
+        }
+
+        foreach (var index in removal.Indices.Reverse())
+        {
+            player.RemoveMediaItem(index);
+        }
+
+        if (removal.RanOut)
+        {
+            player.Pause();
+        }
+    }, cancellationToken);
+
     public Task<PlayerSnapshot> GetSnapshotAsync(CancellationToken cancellationToken = default) => ReadAsync(cancellationToken);
 
     public IDisposable Subscribe(Func<PlayerSnapshot, Task> onChanged) => broadcaster.Subscribe(onChanged);

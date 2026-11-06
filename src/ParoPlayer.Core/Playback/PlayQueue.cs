@@ -12,7 +12,7 @@ public sealed class PlayQueue
     public static readonly TimeSpan RestartThreshold = TimeSpan.FromSeconds(3);
 
     private readonly Random random;
-    private readonly IReadOnlyList<Track> original;
+    private readonly List<Track> original;
     private List<Track> order;
     private int position;
 
@@ -135,8 +135,41 @@ public sealed class PlayQueue
     }
 
     /// <summary>
+    /// Drops the tracks with these ids (deleted from the library). Removing the current track moves to the track
+    /// that followed it; <see cref="QueueRemoval.RanOut"/> says there was none. An emptied queue must be discarded.
+    /// </summary>
+    public QueueRemoval Remove(IReadOnlyCollection<Guid> trackIds)
+    {
+        var ids = trackIds.ToHashSet();
+        var indices = Enumerable.Range(0, order.Count).Where(i => ids.Contains(order[i].Id)).ToList();
+        var currentRemoved = indices.Contains(position);
+        var before = indices.Count(i => i < position);
+
+        original.RemoveAll(track => ids.Contains(track.Id));
+        order.RemoveAll(track => ids.Contains(track.Id));
+        if (order.Count == 0)
+        {
+            position = 0;
+            return new QueueRemoval(indices, currentRemoved, IsEmpty: true, RanOut: currentRemoved);
+        }
+
+        position -= before;
+        var ranOut = false;
+        if (currentRemoved && position >= order.Count)
+        {
+            ranOut = Repeat != RepeatMode.All;
+            position = ranOut ? order.Count - 1 : 0;
+        }
+
+        return new QueueRemoval(indices, currentRemoved, IsEmpty: false, RanOut: ranOut);
+    }
+
+    /// <summary>
     /// The current track finished by itself. Repeat-one stays on it (returns true), otherwise it behaves like
     /// <see cref="MoveNext"/>. False means the queue ended.
     /// </summary>
     public bool Advance() => Repeat == RepeatMode.One || MoveNext();
 }
+
+/// <summary>What <see cref="PlayQueue.Remove"/> did: the removed positions (in the old order, ascending) and what happened to the current track.</summary>
+public sealed record QueueRemoval(IReadOnlyList<int> Indices, bool CurrentRemoved, bool IsEmpty, bool RanOut);

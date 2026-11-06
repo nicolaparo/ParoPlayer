@@ -276,7 +276,9 @@ else
         }
 
         deleting = null;
-        await Removal.RemoveAsync([.. targets.Select(track => track.Id)]);
+        var ids = targets.Select(track => track.Id).ToList();
+        await Playback.RemoveTracksAsync(ids);
+        await Removal.RemoveAsync(ids);
         selection.Clear();
         await ReloadAsync();
         message = $"Deleted {LibraryQuery.Pluralize(targets.Count, "song")}.";

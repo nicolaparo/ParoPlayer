@@ -190,4 +190,45 @@ public class SilentPlayerServiceTests
 
         Assert.True(list.Count >= count, $"expected {count} ticks, got {list.Count}");
     }
+
+    [Fact]
+    public async Task DeletingThePlayingTrackSkipsToTheNextAndKeepsPlaying()
+    {
+        await using var player = Create();
+        var tracks = Tracks(3);
+        await player.PlayAsync(tracks, 0);
+
+        await player.RemoveTracksAsync([tracks[0].Id]);
+        var snapshot = await player.GetSnapshotAsync();
+
+        Assert.Equal("Song 2", snapshot.Current?.Title);
+        Assert.True(snapshot.IsPlaying);
+        Assert.Equal(2, snapshot.QueueCount);
+    }
+
+    [Fact]
+    public async Task DeletingTheLastPlayingTrackStopsCleanly()
+    {
+        await using var player = Create();
+        var tracks = Tracks(2);
+        await player.PlayAsync(tracks, 1);
+
+        await player.RemoveTracksAsync([tracks[1].Id]);
+        var snapshot = await player.GetSnapshotAsync();
+
+        Assert.False(snapshot.IsPlaying);
+        Assert.Equal(1, snapshot.QueueCount);
+    }
+
+    [Fact]
+    public async Task DeletingEveryQueuedTrackEmptiesThePlayer()
+    {
+        await using var player = Create();
+        var tracks = Tracks(2);
+        await player.PlayAsync(tracks, 0);
+
+        await player.RemoveTracksAsync([.. tracks.Select(track => track.Id)]);
+
+        Assert.Equal(PlayerSnapshot.Empty, await player.GetSnapshotAsync());
+    }
 }
