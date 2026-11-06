@@ -49,6 +49,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(new TransferOptions());
         services.AddSingleton<TransferSessions>();
         services.AddSingleton<TransferServer>();
+        services.AddSingleton<ParoPlayer.Core.Browser.BrowserAccess>();
         return services.AddParoDownload();
     }
 

@@ -1,4 +1,4 @@
-@page "/"
+﻿@page "/"
 @inject LibraryService Songs
 @inject PlayerState Player
 @inject IPlayerService Playback
@@ -13,6 +13,7 @@
 @inject AppSettings Prefs
 @inject WaveformBackfillService WaveformBackfill
 @inject KeyBackfillService KeyBackfill
+@inject HostShell Shell
 @inject LibraryViewState ViewState
 @inject IJSRuntime JS
 @inject BackStack Back
@@ -20,9 +21,12 @@
 @using ParoPlayer.Core.Tagging
 
 <PageHeader Title="What's the mood?" Eyebrow="@Greeting.For(Time.GetLocalNow())">
-    <a href="settings" aria-label="Settings" class="flex size-12 shrink-0 items-center justify-center rounded-full bg-panel2">
-        <i class="fa-solid fa-gear" aria-hidden="true"></i>
-    </a>
+    @if (Shell.ShowSettings)
+    {
+        <a href="settings" aria-label="Settings" class="flex size-12 shrink-0 items-center justify-center rounded-full bg-panel2">
+            <i class="fa-solid fa-gear" aria-hidden="true"></i>
+        </a>
+    }
 </PageHeader>
 
 <div data-remember-scroll class="mx-4 mb-2 flex min-h-12 items-center gap-2 rounded-xl bg-panel2 px-3">

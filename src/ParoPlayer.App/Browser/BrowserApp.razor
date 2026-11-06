@@ -1,0 +1,21 @@
+@using Microsoft.AspNetCore.Components.Web
+@using ParoPlayer.App.Components
+<!DOCTYPE html>
+<html lang="en" class="bg-bg">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <title>ParoPlayer</title>
+    <base href="/" />
+    <link rel="stylesheet" href="lib/fontawesome/css/all.min.css" />
+    <link rel="stylesheet" href="css/app.css" />
+    <link rel="icon" href="data:,">
+    <script src="js/paro-audio.js"></script>
+    <HeadOutlet @rendermode="BrowserRenderMode.Mode" />
+</head>
+<body class="bg-bg font-sans text-fg antialiased">
+    <Routes @rendermode="BrowserRenderMode.Mode" />
+    <script src="_framework/blazor.web.js"></script>
+</body>
+</html>

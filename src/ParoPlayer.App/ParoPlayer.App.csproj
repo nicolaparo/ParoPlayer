@@ -68,6 +68,27 @@
         <ProjectReference Include="..\ParoPlayer.Core\ParoPlayer.Core.csproj" />
     </ItemGroup>
 
+    <!-- Browser session (#26): Kestrel + Blazor Server. Windows uses the installed shared framework. Android has no
+         ASP.NET Core runtime pack, so the (portable, managed) assemblies of the win-x64 pack are referenced and shipped. -->
+    <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+    <PropertyGroup>
+        <AspNetPackVersion>11.0.0-preview.6.26359.118</AspNetPackVersion>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageDownload Include="Microsoft.AspNetCore.App.Internal.Assets" Version="[$(AspNetPackVersion)]" />
+        <MauiAsset Include="$(NuGetPackageRoot)microsoft.aspnetcore.app.internal.assets/$(AspNetPackVersion)/staticwebassets/_framework/blazor.web.js" LogicalName="browser/blazor.web.js" />
+    </ItemGroup>
+    <PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+        <AspNetPackDir>$(NuGetPackageRoot)microsoft.aspnetcore.app.runtime.linux-arm64/$(AspNetPackVersion)/runtimes/linux-arm64/lib/net11.0/</AspNetPackDir>
+    </PropertyGroup>
+    <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+        <PackageDownload Include="Microsoft.AspNetCore.App.Runtime.linux-arm64" Version="[$(AspNetPackVersion)]" />
+        <AspNetDll Include="$(AspNetPackDir)*.dll" />
+        <Reference Include="@(AspNetDll)" />
+    </ItemGroup>
+
     <!-- Tailwind: wwwroot/css/app.css is generated AND committed (wwwroot is globbed at evaluation time,
          so the file must already exist on a fresh clone). When node_modules is present, rebuild it
          whenever a Razor file or Styles/app.css changed. Run `npm install` once to enable this. -->

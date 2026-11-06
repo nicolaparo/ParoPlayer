@@ -57,6 +57,8 @@ public static class MauiProgram
         // Windows is a dev preview: the queue and UI work, no audio is played.
         builder.Services.AddSingleton<IPlayerService, SilentPlayerService>();
 #endif
+        builder.Services.AddSingleton(new ParoPlayer.App.Browser.HostShell(ShowSettings: true));
+        builder.Services.AddSingleton<ParoPlayer.App.Browser.BrowserHost>();
         builder.Services.AddSingleton<CoverImages>();
         builder.Services.AddSingleton<LibraryViewState>();
         builder.Services.AddSingleton<BackStack>();
