@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>ParoPlayer Transfer</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0f1115;
+    --panel: #181b22;
+    --control: #232836;
+    --line: #2a2f3a;
+    --text: #e8eaf0;
+    --muted: #9aa3b2;
+    --accent: #4f8cff;
+    --ok: #3fb950;
+    --bad: #f85149;
+  }
+  [hidden] { display: none !important; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  main {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 16px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+  h1 { font-size: 22px; margin: 8px 0 12px; }
+  h2 { font-size: 18px; margin: 0 0 12px; }
+  p { margin: 0 0 12px; }
+  section {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  button, .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 16px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--control);
+    color: var(--text);
+    font: inherit;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:disabled { opacity: 0.5; cursor: default; }
+  .muted { color: var(--muted); font-size: 14px; }
+  .code {
+    font-size: 56px;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    margin: 16px 0;
+  }
+  .drop {
+    border: 2px dashed var(--line);
+    border-radius: 12px;
+    padding: 24px 16px;
+    text-align: center;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  .drop.over { border-color: var(--accent); background: rgba(79, 140, 255, 0.08); }
+  .drop button { margin-top: 8px; }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li.row, li.upload {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-top: 1px solid var(--line);
+  }
+  li:first-child { border-top: 0; }
+  .info { flex: 1; min-width: 0; }
+  .title { font-weight: 600; overflow-wrap: anywhere; }
+  .sub, .meta { color: var(--muted); font-size: 14px; overflow-wrap: anywhere; }
+  .bar { height: 8px; background: var(--control); border-radius: 4px; overflow: hidden; margin: 6px 0; }
+  .fill { height: 100%; width: 0; background: var(--accent); transition: width 0.15s linear; }
+  .fill.ok { background: var(--ok); }
+  .fill.bad { background: var(--bad); }
+  .row-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin: 20px 0 8px;
+  }
+  #msg { color: var(--muted); min-height: 1.4em; margin: 0 0 12px; overflow-wrap: anywhere; }
+  .footer-actions { margin-top: 16px; display: flex; justify-content: flex-end; }
+  .note { color: var(--muted); font-size: 13px; margin-top: 8px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>ParoPlayer Transfer</h1>
+  <p id="msg" role="status"></p>
+
+  <section id="view-loading">
+    <p class="muted">Loading...</p>
+  </section>
+
+  <section id="view-connect" hidden>
+    <p>Connect this browser to your phone to send and download tracks.</p>
+    <button id="connect-btn" class="primary" type="button">Connect</button>
+  </section>
+
+  <section id="view-pairing" hidden>
+    <p>Confirm this code on your phone</p>
+    <div id="code" class="code" aria-live="polite">----</div>
+    <p class="muted">Waiting for approval...</p>
+  </section>
+
+  <section id="view-app" hidden>
+    <h2>Send tracks to the phone</h2>
+    <div id="drop" class="drop">
+      <p>Drop audio files here</p>
+      <button id="choose" type="button">Choose files</button>
+      <input id="picker" type="file" multiple accept="audio/*" hidden>
+    </div>
+    <ul id="uploads"></ul>
+
+    <div class="row-head">
+      <h2>Tracks</h2>
+      <button id="refresh" type="button">Refresh</button>
+    </div>
+    <p id="empty" class="muted" hidden>No tracks yet.</p>
+    <ul id="tracks"></ul>
+
+    <div class="footer-actions">
+      <button id="disconnect" type="button">Disconnect</button>
+    </div>
+  </section>
+
+  <p class="note">Traffic between this browser and the phone is not encrypted. Use this only on a local Wi-Fi network you trust.</p>
+</main>
+
+<script>
+(() => {
+  'use strict';
+
+  const $ = (id) => document.getElementById(id);
+  const VIEWS = ['loading', 'connect', 'pairing', 'app'];
+  const pending = [];
+  let uploading = false;
+
+  function show(name) {
+    for (const v of VIEWS) $('view-' + v).hidden = v !== name;
+  }
+
+  function message(text) {
+    $('msg').textContent = text || '';
+  }
+
+  function el(tag, cls, text) {
+    const node = document.createElement(tag);
+    node.className = cls;
+    node.textContent = text;
+    return node;
+  }
+
+  function deviceName() {
+    const ua = navigator.userAgent || '';
+    const os = (/Android|iPhone|iPad|Windows|Macintosh|Linux/.exec(ua) || ['Unknown'])[0];
+    const browser = /Edg\//.test(ua) ? 'Edge'
+      : /Firefox\//.test(ua) ? 'Firefox'
+      : /Chrome\//.test(ua) ? 'Chrome'
+      : /Safari\//.test(ua) ? 'Safari'
+      : 'Browser';
+    return (browser + ' on ' + os).slice(0, 64);
+  }
+
+  function fmtBytes(n) {
+    if (!n && n !== 0) return '';
+    if (n < 1024) return n + ' B';
+    if (n < 1048576) return Math.round(n / 1024) + ' KB';
+    return (n / 1048576).toFixed(1) + ' MB';
+  }
+
+  function fmtDuration(ms) {
+    const total = Math.round((ms || 0) / 1000);
+    return Math.floor(total / 60) + ':' + String(total % 60).padStart(2, '0');
+  }
+
+  // ---- Tracks -------------------------------------------------------------
+
+  async function loadTracks() {
+    const res = await fetch('/api/tracks', { cache: 'no-store' });
+    if (res.status === 401) {
+      show('connect');
+      return false;
+    }
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    renderTracks(await res.json());
+    show('app');
+    return true;
+  }
+
+  function renderTracks(tracks) {
+    const list = $('tracks');
+    list.textContent = '';
+    $('empty').hidden = tracks.length > 0;
+    for (const t of tracks) list.append(trackItem(t));
+  }
+
+  function trackItem(t) {
+    const li = document.createElement('li');
+    li.className = 'row';
+
+    const info = document.createElement('div');
+    info.className = 'info';
+    const sub = [t.artist, t.album].filter(Boolean).join(' · ');
+    const meta = [fmtDuration(t.durationMs), fmtBytes(t.sizeBytes)].filter(Boolean).join(' · ');
+    info.append(el('div', 'title', t.title || 'Untitled'), el('div', 'sub', sub), el('div', 'meta', meta));
+
+    const link = document.createElement('a');
+    link.className = 'btn';
+    link.href = '/api/tracks/' + encodeURIComponent(String(t.id)) + '/file';
+    link.setAttribute('download', '');
+    link.textContent = 'Download';
+
+    li.append(info, link);
+    return li;
+  }
+
+  async function refresh() {
+    $('refresh').disabled = true;
+    try {
+      await loadTracks();
+    } catch (e) {
+      message('Refresh failed: ' + e.message);
+    } finally {
+      $('refresh').disabled = false;
+    }
+  }
+
+  // ---- Pairing ------------------------------------------------------------
+
+  async function connect() {
+    $('connect-btn').disabled = true;
+    message('');
+    try {
+      const res = await fetch('/api/access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deviceName: deviceName() }),
+        cache: 'no-store'
+      });
+      if (res.status === 409) throw new Error('Another device is connected. Disconnect it first.');
+      if (res.status === 429) throw new Error('Too many attempts. Wait a moment and try again.');
+      if (!res.ok) throw new Error('Could not start pairing (HTTP ' + res.status + ').');
+
+      const { requestId, code } = await res.json();
+      $('code').textContent = code;
+      show('pairing');
+      setTimeout(() => checkAccess(requestId), 1000);
+    } catch (e) {
+      show('connect');
+      message(e.message);
+    } finally {
+      $('connect-btn').disabled = false;
+    }
+  }
+
+  async function checkAccess(requestId) {
+    try {
+      const res = await fetch('/api/access/' + encodeURIComponent(requestId), { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const { status } = await res.json();
+
+      if (status === 'approved') {
+        await loadTracks();
+      } else if (status === 'denied') {
+        show('connect');
+        message('Request denied on the phone.');
+      } else {
+        setTimeout(() => checkAccess(requestId), 1000);
+      }
+    } catch (e) {
+      show('connect');
+      message('Pairing stopped: ' + e.message);
+    }
+  }
+
+  async function disconnect() {
+    $('disconnect').disabled = true;
+    try {
+      await fetch('/api/disconnect', { method: 'POST', cache: 'no-store' });
+      show('connect');
+      message('Disconnected.');
+    } catch (e) {
+      message('Disconnect failed: ' + e.message);
+    } finally {
+      $('disconnect').disabled = false;
+    }
+  }
+
+  // ---- Uploads ------------------------------------------------------------
+
+  function uploadRow(file) {
+    const li = document.createElement('li');
+    li.className = 'upload';
+
+    const info = document.createElement('div');
+    info.className = 'info';
+    const bar = document.createElement('div');
+    bar.className = 'bar';
+    const fill = document.createElement('div');
+    fill.className = 'fill';
+    bar.append(fill);
+    const status = el('div', 'sub', 'Waiting · ' + fmtBytes(file.size));
+    info.append(el('div', 'title', file.name), bar, status);
+    li.append(info);
+    $('uploads').append(li);
+
+    return {
+      setStatus(text) { status.textContent = text; },
+      setProgress(ratio) {
+        const pct = Math.round(ratio * 100);
+        fill.style.width = pct + '%';
+        status.textContent = 'Uploading ' + pct + '%';
+      },
+      finish(ok, text) {
+        fill.style.width = '100%';
+        fill.classList.toggle('ok', ok);
+        fill.classList.toggle('bad', !ok);
+        status.textContent = text;
+      }
+    };
+  }
+
+  function upload(file, row) {
+    return new Promise((resolve) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('PUT', '/api/upload?name=' + encodeURIComponent(file.name));
+      xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) row.setProgress(e.loaded / e.total);
+      };
+      xhr.onload = () => {
+        const ok = xhr.status >= 200 && xhr.status < 300;
+        if (ok) row.finish(true, 'Imported');
+        else if (xhr.status === 401) row.finish(false, 'Session ended');
+        else row.finish(false, 'Failed (HTTP ' + xhr.status + ')');
+        resolve({ ok, status: xhr.status });
+      };
+      xhr.onerror = () => {
+        row.finish(false, 'Network error');
+        resolve({ ok: false, status: 0 });
+      };
+      row.setStatus('Uploading 0%');
+      xhr.send(file);
+    });
+  }
+
+  function queueFiles(files) {
+    for (const file of files) {
+      pending.push({ file, row: uploadRow(file) });
+    }
+    pumpUploads();
+  }
+
+  async function pumpUploads() {
+    if (uploading) return;
+    uploading = true;
+    let imported = false;
+    let sessionEnded = false;
+
+    while (pending.length > 0 && !sessionEnded) {
+      const job = pending.shift();
+      const result = await upload(job.file, job.row);
+      imported = imported || result.ok;
+      sessionEnded = result.status === 401;
+    }
+
+    if (sessionEnded) {
+      for (const job of pending.splice(0)) job.row.finish(false, 'Not sent');
+      show('connect');
+      message('Session ended. Connect again.');
+    } else if (imported) {
+      try {
+        await loadTracks();
+      } catch (e) {
+        message('Could not refresh the list: ' + e.message);
+      }
+    }
+    uploading = false;
+  }
+
+  // ---- Wiring -------------------------------------------------------------
+
+  const drop = $('drop');
+  ['dragenter', 'dragover'].forEach((type) =>
+    drop.addEventListener(type, (e) => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach((type) =>
+    drop.addEventListener(type, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', (e) => {
+    if (e.dataTransfer && e.dataTransfer.files.length > 0) queueFiles(Array.from(e.dataTransfer.files));
+  });
+
+  // Stop the browser from navigating away when files are dropped outside the zone.
+  window.addEventListener('dragover', (e) => e.preventDefault());
+  window.addEventListener('drop', (e) => e.preventDefault());
+
+  $('choose').addEventListener('click', () => $('picker').click());
+  $('picker').addEventListener('change', (e) => {
+    const files = Array.from(e.target.files);
+    e.target.value = '';
+    if (files.length > 0) queueFiles(files);
+  });
+
+  $('connect-btn').addEventListener('click', connect);
+  $('refresh').addEventListener('click', refresh);
+  $('disconnect').addEventListener('click', disconnect);
+
+  // ---- Start --------------------------------------------------------------
+
+  show('loading');
+  loadTracks().catch((e) => {
+    show('connect');
+    message('Could not reach the phone: ' + e.message);
+  });
+})();
+</script>
+</body>
+</html>

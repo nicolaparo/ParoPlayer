@@ -13,6 +13,14 @@
     <ToggleRow Title="Android Auto" Description="Show ParoPlayer in the car" Value="Prefs.AndroidAuto" ValueChanged="value => Prefs.AndroidAuto = value" />
     <ToggleRow Title="Lock screen controls" Description="Notification and lock screen player" Value="Prefs.LockScreenControls" ValueChanged="value => Prefs.LockScreenControls = value" />
 
+    <a href="/transfer" class="flex min-h-14 items-center gap-3 py-2">
+        <div class="min-w-0 flex-1">
+            <div>Wi-Fi transfer</div>
+            <div class="text-xs text-mute">Send and get songs from a computer</div>
+        </div>
+        <i class="fa-solid fa-chevron-right text-mute" aria-hidden="true"></i>
+    </a>
+
     <h2 class="mb-2 mt-6 text-xs uppercase tracking-wider text-mute">Storage</h2>
     <div class="mb-3 rounded-2xl bg-panel2 p-3">
         <div>@LibraryQuery.Pluralize(songCount, "song") · @LibraryQuery.FormatSize(usedBytes) used</div>

@@ -44,7 +44,7 @@ public sealed class AudioConverterTests : IDisposable
         var encode = FfmpegArguments.ToM4a("in.webm", "out.m4a", inputIsAac: false);
 
         Assert.Equal(["-c:a", "copy"], copy.SkipWhile(a => a != "-c:a").Take(2));
-        Assert.Equal(["-c:a", "aac", "-b:a", "192k"], encode.SkipWhile(a => a != "-c:a").Take(4));
+        Assert.Equal(["-c:a", "aac", "-b:a", "256k"], encode.SkipWhile(a => a != "-c:a").Take(4));
         Assert.Equal("out.m4a", encode[^1]);
         Assert.Contains("-vn", copy);
     }

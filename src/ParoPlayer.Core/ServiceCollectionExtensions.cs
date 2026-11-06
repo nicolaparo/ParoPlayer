@@ -6,6 +6,7 @@ using ParoPlayer.Core.Engine;
 using ParoPlayer.Core.Import;
 using ParoPlayer.Core.Services;
 using ParoPlayer.Core.Tagging;
+using ParoPlayer.Core.Transfer;
 using SQLite;
 
 namespace ParoPlayer.Core;
@@ -34,6 +35,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMetadataSource, MusicBrainzSource>();
         services.AddSingleton<IMetadataSource, ITunesSource>();
         services.AddSingleton<MetadataLookupService>();
+        services.AddSingleton(new TransferOptions());
+        services.AddSingleton<TransferSessions>();
+        services.AddSingleton<TransferServer>();
         return services.AddParoDownload();
     }
 

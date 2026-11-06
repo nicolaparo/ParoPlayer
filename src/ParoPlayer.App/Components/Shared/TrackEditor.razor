@@ -108,7 +108,7 @@
 
 @if (undo is not null)
 {
-    <div class="fade-enter fixed inset-x-4 bottom-24 z-30 flex items-center justify-between gap-2 rounded-xl bg-panel2 px-3 shadow-lg" role="status">
+    <div class="fade-enter fixed inset-x-4 bottom-44 z-30 flex items-center justify-between gap-2 rounded-xl bg-panel2 px-3 shadow-lg" role="status">
         <span class="min-w-0 flex-1 text-sm">@undoMessage</span>
         <button type="button" class="min-h-12 px-3 font-semibold text-accent" @onclick="UndoAsync">Undo</button>
         <button type="button" class="min-h-12 px-3 font-semibold" @onclick="Confirm">Keep</button>

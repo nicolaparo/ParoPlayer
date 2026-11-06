@@ -31,7 +31,7 @@ public static class FfmpegArguments
         "-y", "-nostdin", "-hide_banner", "-loglevel", "error",
         "-i", inputPath,
         "-vn", "-map", "0:a:0",
-        .. inputIsAac ? (string[])["-c:a", "copy"] : ["-c:a", "aac", "-b:a", "192k"],
+        .. inputIsAac ? (string[])["-c:a", "copy"] : ["-c:a", "aac", "-b:a", "256k"],
         "-movflags", "+faststart",
         outputPath,
     ];

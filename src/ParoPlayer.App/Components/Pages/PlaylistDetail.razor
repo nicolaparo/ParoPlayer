@@ -31,7 +31,7 @@ else
 
     @if (undoTrack is not null)
     {
-        <div class="fade-enter fixed inset-x-4 bottom-24 z-30 flex items-center justify-between gap-2 rounded-xl bg-panel2 px-3 shadow-lg" role="status">
+        <div class="fade-enter fixed inset-x-4 bottom-44 z-30 flex items-center justify-between gap-2 rounded-xl bg-panel2 px-3 shadow-lg" role="status">
             <span class="min-w-0 truncate text-sm">Removed @undoTrack.Title</span>
             <button type="button" class="min-h-12 px-3 font-semibold text-accent" @onclick="UndoAsync">Undo</button>
         </div>

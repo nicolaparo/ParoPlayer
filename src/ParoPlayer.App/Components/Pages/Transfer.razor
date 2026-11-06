@@ -1,0 +1,187 @@
+@page "/transfer"
+@using System.Net
+@using System.Net.NetworkInformation
+@using System.Net.Sockets
+@using ParoPlayer.Core.Transfer
+@inject TransferServer Server
+@inject TransferSessions Sessions
+@implements IAsyncDisposable
+
+<PageHeader Title="Wi-Fi transfer" BackHref="/settings" />
+
+<div class="px-4 pb-6">
+    <p class="text-sm text-mute">Send songs to this phone and download them from a computer on the same Wi-Fi network. The server runs only while this screen is open.</p>
+
+    <button type="button" class="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-4 font-semibold disabled:opacity-60 @(Server.IsRunning ? "bg-panel2" : "bg-accent text-accent-fg")"
+            disabled="@busy" @onclick="ToggleAsync">
+        <i class="@(Server.IsRunning ? "fa-solid fa-stop" : "fa-solid fa-play")" aria-hidden="true"></i>
+        @(Server.IsRunning ? "Stop" : "Start")
+    </button>
+
+    @if (error is not null)
+    {
+        <p class="mt-2 text-sm text-bad" role="status">@error</p>
+    }
+
+    @if (Server.IsRunning)
+    {
+        <div class="mt-4 rounded-2xl bg-panel2 p-3">
+            <div class="text-xs uppercase tracking-wider text-mute">Open this address on your computer</div>
+            @if (address is not null)
+            {
+                <div class="mt-1 break-all font-display text-lg font-bold">@address</div>
+            }
+            else
+            {
+                <div class="mt-1 text-sm text-mute">No Wi-Fi address found. Connect to Wi-Fi and start again.</div>
+            }
+        </div>
+
+        <div class="mt-3 rounded-2xl bg-panel2 p-3">
+            <div class="text-xs uppercase tracking-wider text-mute">Connected device</div>
+            @if (Sessions.ConnectedDevice is { } device)
+            {
+                <div class="mt-1 flex items-center gap-3">
+                    <div class="min-w-0 flex-1">
+                        <div class="truncate">@device.DeviceName</div>
+                        <div class="truncate text-xs text-mute">@device.Address</div>
+                    </div>
+                    <button type="button" class="flex min-h-12 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-panel px-4 font-semibold" @onclick="Sessions.Disconnect">
+                        <i class="fa-solid fa-link-slash" aria-hidden="true"></i>Disconnect
+                    </button>
+                </div>
+            }
+            else
+            {
+                <div class="mt-1 text-sm text-mute">Waiting for a device...</div>
+            }
+        </div>
+    }
+
+    <p class="mt-4 text-xs text-mute">Traffic on this connection is not encrypted. Use it only on a network you trust.</p>
+</div>
+
+@if (Sessions.PendingRequest is { } pending)
+{
+    <ActionSheet Title="Allow this device?" OnClose="DenyAsync">
+        <ChildContent>
+            <div class="pb-3">
+                <div class="truncate text-lg font-semibold">@pending.DeviceName</div>
+                <div class="text-sm text-mute">@pending.Address</div>
+                <div class="mt-3 text-xs uppercase tracking-wider text-mute">Code shown in the browser</div>
+                <div class="font-display text-4xl font-bold tracking-widest" aria-label="Code @pending.Code">@pending.Code</div>
+                <p class="mt-2 text-sm text-mute">Allow only if this code matches the one on your computer.</p>
+            </div>
+        </ChildContent>
+        <Footer Context="close">
+            <div class="my-2 flex gap-3">
+                <button type="button" class="min-h-12 flex-1 whitespace-nowrap rounded-xl bg-panel2 px-4 font-semibold" @onclick="close">Deny</button>
+                <button type="button" class="min-h-12 flex-1 whitespace-nowrap rounded-xl bg-accent px-4 font-semibold text-accent-fg" @onclick="AllowAsync">Allow</button>
+            </div>
+        </Footer>
+    </ActionSheet>
+}
+
+@code {
+    private string? address;
+    private string? error;
+    private bool busy;
+    private bool disposed;
+
+    private Action? onStateChanged;
+
+    protected override void OnInitialized()
+    {
+        onStateChanged = () => InvokeAsync(StateHasChanged);
+        Sessions.StateChanged += onStateChanged;
+    }
+
+    private async Task ToggleAsync()
+    {
+        busy = true;
+        error = null;
+        try
+        {
+            if (Server.IsRunning)
+            {
+                await StopServerAsync();
+            }
+            else
+            {
+                await StartServerAsync();
+            }
+        }
+        catch (Exception exception)
+        {
+            error = exception.Message;
+            await StopServerAsync();
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task StartServerAsync()
+    {
+        var port = await Server.StartAsync(localhostOnly: DeviceInfo.Platform != DevicePlatform.Android);
+        address = FindAddress(port);
+        SetKeepScreenOn(true);
+    }
+
+    private async Task StopServerAsync()
+    {
+        SetKeepScreenOn(false);
+        address = null;
+        await Server.StopAsync();
+    }
+
+    private Task AllowAsync()
+    {
+        Sessions.Approve();
+        return Task.CompletedTask;
+    }
+
+    private Task DenyAsync()
+    {
+        Sessions.Deny();
+        return Task.CompletedTask;
+    }
+
+    private static void SetKeepScreenOn(bool value)
+    {
+        try
+        {
+            DeviceDisplay.Current.KeepScreenOn = value;
+        }
+        catch (Exception)
+        {
+            // Not supported on this platform: transfer still works.
+        }
+    }
+
+    private static string? FindAddress(int port)
+    {
+        var ip = NetworkInterface.GetAllNetworkInterfaces()
+            .Where(nic => nic.OperationalStatus == OperationalStatus.Up && nic.NetworkInterfaceType != NetworkInterfaceType.Loopback)
+            .SelectMany(nic => nic.GetIPProperties().UnicastAddresses)
+            .Select(unicast => unicast.Address)
+            .FirstOrDefault(candidate => candidate.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(candidate));
+        return ip is null ? null : $"http://{ip}:{port}/";
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (disposed)
+        {
+            return;
+        }
+
+        disposed = true;
+        Sessions.StateChanged -= onStateChanged;
+        if (Server.IsRunning)
+        {
+            await StopServerAsync();
+        }
+    }
+}

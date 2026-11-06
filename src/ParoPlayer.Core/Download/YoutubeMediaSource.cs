@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using YoutubeExplode;
 using YoutubeExplode.Exceptions;
 using YoutubeExplode.Playlists;
@@ -56,8 +57,9 @@ public sealed class YoutubeMediaSource(HttpClient http) : IMediaSource
         try
         {
             var manifest = await youtube.Videos.Streams.GetManifestAsync(media.Id, cancellationToken);
-            var stream = AudioStreamPicker.Best(manifest.GetAudioOnlyStreams(), s => s.Container == Container.Mp4, s => s.Bitrate.BitsPerSecond)
+            var stream = AudioStreamPicker.Best(manifest.GetAudioOnlyStreams(), s => s.Bitrate.BitsPerSecond)
                 ?? throw new MediaSourceException("No audio stream is available for this video.");
+            Trace.WriteLine($"Download {media.Id}: itag {Itag(stream.Url)}, codec {stream.AudioCodec}, {stream.Bitrate.KiloBitsPerSecond:0} kbps, {stream.Container.Name}");
             var path = $"{basePath}.{stream.Container.Name}";
             await youtube.Videos.Streams.DownloadAsync(stream, path, progress, cancellationToken);
             return new DownloadedAudio(path, IsAac(stream));
@@ -72,6 +74,8 @@ public sealed class YoutubeMediaSource(HttpClient http) : IMediaSource
     private static bool IsNetworkError(Exception ex, CancellationToken cancellationToken) =>
         ex is YoutubeExplodeException or HttpRequestException or IOException
         || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested);
+
+    private static string Itag(string url) => System.Web.HttpUtility.ParseQueryString(new Uri(url).Query)["itag"] ?? "?";
 
     private static bool IsAac(AudioOnlyStreamInfo stream) => stream.AudioCodec.StartsWith("mp4a", StringComparison.OrdinalIgnoreCase);
 
@@ -104,11 +108,6 @@ public sealed class YoutubeMediaSource(HttpClient http) : IMediaSource
 /// <summary>Picks the audio stream to download.</summary>
 public static class AudioStreamPicker
 {
-    /// <summary>The highest-bitrate stream that is <paramref name="preferred"/> (AAC, so it can be copied), otherwise the highest-bitrate stream. Null when empty.</summary>
-    public static T? Best<T>(IEnumerable<T> streams, Func<T, bool> preferred, Func<T, long> bitrate) where T : class
-    {
-        var all = streams.ToList();
-        var pool = all.Where(preferred).ToList();
-        return (pool.Count > 0 ? pool : all).MaxBy(bitrate);
-    }
+    /// <summary>The highest-bitrate stream, whatever the codec. Null when empty.</summary>
+    public static T? Best<T>(IEnumerable<T> streams, Func<T, long> bitrate) where T : class => streams.MaxBy(bitrate);
 }

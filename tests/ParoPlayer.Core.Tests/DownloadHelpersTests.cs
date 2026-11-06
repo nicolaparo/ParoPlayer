@@ -38,22 +38,17 @@ public class DownloadHelpersTests
     }
 
     [Fact]
-    public void AudioStreamPicker_PrefersAacOverHigherBitrateOther()
+    public void AudioStreamPicker_PicksHighestBitrateRegardlessOfCodec()
     {
         var streams = new[] { new Stream("webm", 160), new Stream("mp4", 128), new Stream("mp4", 48) };
 
-        var best = AudioStreamPicker.Best(streams, s => s.Container == "mp4", s => s.Rate);
-
-        Assert.Equal(new Stream("mp4", 128), best);
+        Assert.Equal(new Stream("webm", 160), AudioStreamPicker.Best(streams, s => s.Rate));
     }
 
     [Fact]
-    public void AudioStreamPicker_FallsBackToHighestBitrate_AndHandlesEmpty()
+    public void AudioStreamPicker_HandlesEmpty()
     {
-        var streams = new[] { new Stream("webm", 64), new Stream("webm", 160) };
-
-        Assert.Equal(160, AudioStreamPicker.Best(streams, s => s.Container == "mp4", s => s.Rate)!.Rate);
-        Assert.Null(AudioStreamPicker.Best(Array.Empty<Stream>(), s => true, s => s.Rate));
+        Assert.Null(AudioStreamPicker.Best(Array.Empty<Stream>(), s => s.Rate));
     }
 
     private sealed record Stream(string Container, long Rate);

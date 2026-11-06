@@ -6,8 +6,8 @@ Paste a video or playlist link (or type a search phrase) on the Download tab. Au
 
 `DownloadRequests.SubmitAsync(text)`: a link is resolved (video, or playlist up to 100 items) and every item is queued; anything else is a search (top 10) and the user taps the ones to download. Then `DownloadQueue` runs one item at a time through `DownloadPipeline`:
 
-1. `IMediaSource.DownloadAudioAsync` saves the best audio stream into a temp work folder (never inside `library`). It prefers an AAC (mp4) stream, so ffmpeg can copy it without re-encoding; otherwise the best bitrate (webm/opus).
-2. `IAudioConverter`: with ffmpeg, the output is always `.m4a` (`-vn -map 0:a:0 -c:a copy` for AAC, `-c:a aac -b:a 192k` otherwise, `+faststart`). If conversion fails, the original file is kept and the item shows "Saved without conversion: ...".
+1. `IMediaSource.DownloadAudioAsync` saves the best audio stream into a temp work folder (never inside `library`). It picks the highest-bitrate audio stream whatever the codec (usually Opus webm, 130-160 kbps, beats AAC which YouTube caps near 128 kbps) and logs itag, codec and bitrate via `Trace`. AAC is copied by ffmpeg; Opus is re-encoded to AAC 256k so the quality loss stays small and the library keeps one format (the bundled ffmpeg is not known to have the ogg muxer).
+2. `IAudioConverter`: with ffmpeg, the output is always `.m4a` (`-vn -map 0:a:0 -c:a copy` for AAC, `-c:a aac -b:a 256k` otherwise, `+faststart`). If conversion fails, the original file is kept and the item shows "Saved without conversion: ...".
 3. `ITrackTagWriter` (TagLibSharp) writes title, artist and the YouTube thumbnail as cover. A tagging failure never fails the item.
 4. `TrackImportService.ImportAsync("Artist - Title.m4a", stream)` copies into the `.nomedia` library folder and creates the `Track`. The work folder is deleted on success, failure and cancel.
 

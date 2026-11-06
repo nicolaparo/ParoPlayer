@@ -12,4 +12,8 @@
     <PackageReference Include="YoutubeExplode" Version="6.6.3" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Transfer/transfer.html" LogicalName="transfer.html" Condition="Exists('Transfer/transfer.html')" />
+  </ItemGroup>
+
 </Project>

@@ -101,6 +101,10 @@
     transition: background-color 150ms ease, color 150ms ease, opacity 150ms ease, transform 120ms ease;
   }
 
+  button {
+    white-space: nowrap;
+  }
+
   button:active,
   a:active {
     transform: scale(0.97);
