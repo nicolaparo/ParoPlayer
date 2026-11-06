@@ -25,6 +25,8 @@ public class WaveformStore(ILibraryFolder folder, IWaveformAnalyzer analyzer)
 
     private string PathFor(Guid trackId) => Path.Combine(folder.Path, FolderName, $"{trackId:N}.json");
 
+    public bool Has(Guid trackId) => File.Exists(PathFor(trackId));
+
     /// <summary>Removes the cached peaks of a deleted track.</summary>
     public void Delete(Guid trackId)
     {
