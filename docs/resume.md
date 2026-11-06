@@ -27,4 +27,4 @@ Read this first when resuming. Then `CLAUDE.md`, `docs/action-plan.md`.
 2. Finish/verify native playback on the emulator, then install on the phone (`adb install -r`, ask before any uninstall).
 3. Ask the user for mockup feedback; adjust mockup/UI.
 4. Download screen (YoutubeExplode + ffmpeg + TagLibSharp), Now Playing polish (vinyl, waveform), song tag editor (done), Wi-Fi transfer, Android Auto browse tree + DHU.
-5. Known UI gaps: no delete/edit/reorder for playlists, no drill-down in Albums/Artists/Genres/Folders tabs, no cover art extraction.
+5. Known UI gaps: no delete/edit/reorder for playlists, no cover art extraction.

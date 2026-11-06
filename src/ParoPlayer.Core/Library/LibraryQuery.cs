@@ -4,7 +4,16 @@ using ParoPlayer.Core.Models;
 namespace ParoPlayer.Core.Library;
 
 /// <summary>A row of the Albums, Artists, Genres or Folders tab.</summary>
-public record LibraryGroup(string Name, string Subtitle, int Count);
+public record LibraryGroup(string Name, string Subtitle, int Count, string CoverPath = "");
+
+/// <summary>Which tab a <see cref="LibraryGroup"/> belongs to.</summary>
+public enum LibraryGroupKind
+{
+    Album,
+    Artist,
+    Genre,
+    Folder,
+}
 
 /// <summary>What the Songs list can be ordered by.</summary>
 public enum SongSortKey
@@ -49,18 +58,24 @@ public static class LibraryQuery
         return [.. ordered.ThenBy(track => track.Title, comparer)];
     }
 
-    /// <summary>Albums with the artist of the first track as subtitle.</summary>
+    /// <summary>Albums with the artist of the first track as subtitle and the first cover found.</summary>
     public static IReadOnlyList<LibraryGroup> Albums(IEnumerable<Track> tracks) =>
-        [.. tracks.GroupBy(track => Label(track.Album))
+        [.. tracks.GroupBy(track => Label(track.Album), StringComparer.OrdinalIgnoreCase)
             .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
-            .Select(group => new LibraryGroup(group.Key, Label(group.First().Artist), group.Count()))];
+            .Select(group => new LibraryGroup(group.Key, Label(group.First().Artist), group.Count(), FirstCover(group)))];
 
-    public static IReadOnlyList<LibraryGroup> Artists(IEnumerable<Track> tracks) => Group(tracks, track => track.Artist);
+    public static IReadOnlyList<LibraryGroup> Artists(IEnumerable<Track> tracks) => Group(tracks, KeyOf(LibraryGroupKind.Artist));
 
-    public static IReadOnlyList<LibraryGroup> Genres(IEnumerable<Track> tracks) => Group(tracks, track => track.Genre);
+    public static IReadOnlyList<LibraryGroup> Genres(IEnumerable<Track> tracks) => Group(tracks, KeyOf(LibraryGroupKind.Genre));
 
-    public static IReadOnlyList<LibraryGroup> Folders(IEnumerable<Track> tracks) =>
-        Group(tracks, track => Path.GetFileName(Path.GetDirectoryName(track.FilePath) ?? ""));
+    public static IReadOnlyList<LibraryGroup> Folders(IEnumerable<Track> tracks) => Group(tracks, KeyOf(LibraryGroupKind.Folder));
+
+    /// <summary>The tracks of one group, matched the way the group tabs name them ("Unknown" matches empty values).</summary>
+    public static IReadOnlyList<Track> TracksIn(IEnumerable<Track> tracks, LibraryGroupKind kind, string name)
+    {
+        var key = KeyOf(kind);
+        return [.. tracks.Where(track => string.Equals(Label(key(track)), name, StringComparison.OrdinalIgnoreCase))];
+    }
 
     public static string FormatDuration(int seconds)
     {
@@ -92,8 +107,19 @@ public static class LibraryQuery
 
     public static string Pluralize(int count, string singular) => count == 1 ? $"1 {singular}" : $"{count} {singular}s";
 
+    private static Func<Track, string> KeyOf(LibraryGroupKind kind) => kind switch
+    {
+        LibraryGroupKind.Album => track => track.Album,
+        LibraryGroupKind.Artist => track => track.Artist,
+        LibraryGroupKind.Genre => track => track.Genre,
+        _ => track => Path.GetFileName(Path.GetDirectoryName(track.FilePath) ?? ""),
+    };
+
+    private static string FirstCover(IEnumerable<Track> tracks) =>
+        tracks.Select(track => track.CoverPath).FirstOrDefault(path => path.Length > 0) ?? "";
+
     private static IReadOnlyList<LibraryGroup> Group(IEnumerable<Track> tracks, Func<Track, string> key) =>
-        [.. tracks.GroupBy(track => Label(key(track)))
+        [.. tracks.GroupBy(track => Label(key(track)), StringComparer.OrdinalIgnoreCase)
             .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
             .Select(group => new LibraryGroup(group.Key, Pluralize(group.Count(), "song"), group.Count()))];
 

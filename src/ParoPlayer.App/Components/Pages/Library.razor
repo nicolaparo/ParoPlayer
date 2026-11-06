@@ -12,6 +12,8 @@
 @inject CoverBackfillService CoverBackfill
 @inject AppSettings Prefs
 @inject WaveformBackfillService WaveformBackfill
+@inject LibraryViewState ViewState
+@inject IJSRuntime JS
 
 <PageHeader Title="What's the mood?" Eyebrow="@Greeting.For(Time.GetLocalNow())">
     <a href="settings" aria-label="Settings" class="flex size-12 shrink-0 items-center justify-center rounded-full bg-panel2">
@@ -32,7 +34,7 @@
     </div>
 }
 
-<div class="mx-4 mb-2 flex min-h-12 items-center gap-2 rounded-xl bg-panel2 px-3">
+<div data-remember-scroll class="mx-4 mb-2 flex min-h-12 items-center gap-2 rounded-xl bg-panel2 px-3">
     <i class="fa-solid fa-magnifying-glass text-mute" aria-hidden="true"></i>
     <input type="search" class="min-w-0 flex-1 bg-transparent py-3 text-fg outline-none placeholder:text-mute" placeholder="Search songs, artists, albums"
            aria-label="Search" @bind="Query" @bind:event="oninput" />
@@ -100,11 +102,11 @@ else
         <div class="grid grid-cols-2 gap-3 px-4">
             @foreach (var group in LibraryQuery.Albums(songs))
             {
-                <div class="min-w-0">
-                    <ArtTile Seed="@group.Name" SizeClass="aspect-square w-full text-3xl rounded-2xl" />
+                <a href="@GroupHref(LibraryGroupKind.Album, group.Name)" class="block min-w-0">
+                    <ArtTile Seed="@group.Name" CoverPath="@group.CoverPath" SizeClass="aspect-square w-full text-3xl rounded-2xl" />
                     <div class="mt-1 truncate font-semibold">@group.Name</div>
                     <div class="truncate text-xs text-mute">@group.Subtitle</div>
-                </div>
+                </a>
             }
         </div>
     }
@@ -112,7 +114,7 @@ else
     {
         @foreach (var group in CurrentGroups())
         {
-            <div class="flex min-h-16 items-center gap-3 px-4">
+            <a href="@GroupHref(CurrentKind(), group.Name)" class="flex min-h-16 items-center gap-3 px-4">
                 @if (tab == "Folders")
                 {
                     <div class="flex size-12 shrink-0 items-center justify-center rounded-lg bg-panel2" aria-hidden="true">
@@ -127,7 +129,7 @@ else
                     <div class="truncate font-semibold">@group.Name</div>
                     <div class="text-xs text-mute">@group.Subtitle</div>
                 </div>
-            </div>
+            </a>
         }
     }
 
@@ -177,8 +179,9 @@ else
     private List<Track> all = [];
     private List<Track> songs = [];
     private List<Mix> mixes = [];
-    private string tab = "Songs";
+    private string tab = "";
     private string query = "";
+    private bool restorePending;
     private readonly HashSet<Guid> selection = [];
     private Track? menuTrack;
     private Track? editing;
@@ -192,7 +195,7 @@ else
         get => query;
         set
         {
-            query = value;
+            query = ViewState.Query = value;
             Resort();
         }
     }
@@ -223,13 +226,27 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        tab = ViewState.Tab;
+        query = ViewState.Query;
         await ReloadAsync();
+        restorePending = true;
         if (await CoverBackfill.RunAsync() > 0)
         {
             await ReloadAsync();
         }
 
         WaveformBackfill.Start();
+    }
+
+    // The scroll offset is put back only once the lists have been built, or there is nothing tall enough to scroll.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (restorePending && all.Count > 0)
+        {
+            restorePending = false;
+            await using var module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/scroll.js");
+            await module.InvokeVoidAsync("restore");
+        }
     }
 
     private async Task ReloadAsync()
@@ -245,7 +262,17 @@ else
         }
     }
 
-    private void SelectTab(string name) => tab = name;
+    private void SelectTab(string name) => tab = ViewState.Tab = name;
+
+    private LibraryGroupKind CurrentKind() => tab switch
+    {
+        "Artists" => LibraryGroupKind.Artist,
+        "Genres" => LibraryGroupKind.Genre,
+        _ => LibraryGroupKind.Folder,
+    };
+
+    private static string GroupHref(LibraryGroupKind kind, string name) =>
+        $"library/group?kind={kind}&name={Uri.EscapeDataString(name)}";
 
     private IDisposable? playerSubscription;
 

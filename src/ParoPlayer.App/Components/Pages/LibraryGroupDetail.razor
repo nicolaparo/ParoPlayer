@@ -1,0 +1,60 @@
+@page "/library/group"
+@inject LibraryService Library
+@inject PlayerState Player
+@inject IPlayerService Playback
+@implements IDisposable
+@inject Random Rng
+
+<PageHeader Title="@Name" BackHref="" />
+
+<div class="mx-4 mb-2 flex items-center gap-2 rounded-2xl bg-panel2 p-3">
+    <div class="min-w-0 flex-1">
+        <div class="font-semibold">@Kind</div>
+        <div class="text-xs text-mute">@LibraryQuery.Pluralize(tracks.Count, "song") · @LibraryQuery.FormatTotalDuration(tracks)</div>
+    </div>
+    <button type="button" class="min-h-12 rounded-xl bg-accent px-4 font-semibold text-accent-fg disabled:opacity-60"
+            disabled="@(tracks.Count == 0)" @onclick="PlayFirst">
+        <i class="fa-solid fa-play mr-1" aria-hidden="true"></i>Play
+    </button>
+    <button type="button" aria-label="Shuffle" class="flex size-12 items-center justify-center rounded-xl bg-panel disabled:opacity-60"
+            disabled="@(tracks.Count == 0)" @onclick="PlayRandom">
+        <i class="fa-solid fa-shuffle" aria-hidden="true"></i>
+    </button>
+</div>
+
+@if (tracks.Count == 0)
+{
+    <p class="px-4 pt-2 text-sm text-mute">No songs in this group.</p>
+}
+
+<Virtualize Items="tracks" Context="track" ItemSize="64">
+    <SongRow @key="track.Id" Track="track" IsCurrent="@(Player.Current?.Id == track.Id)" OnPlay="PlayAsync" />
+</Virtualize>
+
+@code {
+    [SupplyParameterFromQuery(Name = "kind")] public LibraryGroupKind Kind { get; set; }
+
+    [SupplyParameterFromQuery(Name = "name")] public string Name { get; set; } = "";
+
+    private List<Track> tracks = [];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var members = LibraryQuery.TracksIn(await Library.GetAllAsync(), Kind, Name);
+        tracks = Kind == LibraryGroupKind.Album
+            ? [.. members.OrderBy(track => track.TrackNumber == 0).ThenBy(track => track.TrackNumber).ThenBy(track => track.Title, StringComparer.OrdinalIgnoreCase)]
+            : [.. LibraryQuery.Sort(members, SongSortKey.Title, false)];
+    }
+
+    private IDisposable? playerSubscription;
+
+    protected override void OnInitialized() => playerSubscription = Player.Subscribe(() => InvokeAsync(StateHasChanged));
+
+    public void Dispose() => playerSubscription?.Dispose();
+
+    private Task PlayAsync(Track track) => Playback.PlayFromAsync(tracks, track);
+
+    private Task PlayFirst() => PlayAsync(tracks[0]);
+
+    private Task PlayRandom() => Playback.PlayShuffledAsync(tracks, Rng);
+}

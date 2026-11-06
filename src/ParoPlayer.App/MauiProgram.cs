@@ -57,6 +57,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<IPlayerService, SilentPlayerService>();
 #endif
         builder.Services.AddSingleton<CoverImages>();
+        builder.Services.AddSingleton<LibraryViewState>();
         builder.Services.AddSingleton<PlayerState>();
         builder.Services.AddSingleton<DemoLibrary>();
 

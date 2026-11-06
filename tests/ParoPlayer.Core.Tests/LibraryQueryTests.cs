@@ -25,6 +25,32 @@ public class LibraryQueryTests
         Assert.Single(LibraryQuery.Folders(Tracks));
     }
 
+    [Fact]
+    public void TracksIn_FindsGroupMembers()
+    {
+        Assert.Equal(["A", "B"], LibraryQuery.TracksIn(Tracks, LibraryGroupKind.Artist, "m83").Select(track => track.Title));
+        Assert.Equal(["A", "B"], LibraryQuery.TracksIn(Tracks, LibraryGroupKind.Album, "Dreaming").Select(track => track.Title));
+        Assert.Equal(["A", "B"], LibraryQuery.TracksIn(Tracks, LibraryGroupKind.Genre, "SYNTH").Select(track => track.Title));
+        Assert.Equal(["C"], LibraryQuery.TracksIn(Tracks, LibraryGroupKind.Artist, LibraryQuery.Unknown).Select(track => track.Title));
+        Assert.Equal(["C"], LibraryQuery.TracksIn(Tracks, LibraryGroupKind.Album, LibraryQuery.Unknown).Select(track => track.Title));
+        Assert.Equal(3, LibraryQuery.TracksIn(Tracks, LibraryGroupKind.Folder, "lib").Count);
+        Assert.Empty(LibraryQuery.TracksIn(Tracks, LibraryGroupKind.Artist, "Nobody"));
+    }
+
+    [Fact]
+    public void Albums_UseFirstCoverAndMergeCaseVariants()
+    {
+        Track[] tracks =
+        [
+            new() { Title = "A", Album = "Dreaming", CoverPath = "" },
+            new() { Title = "B", Album = "dreaming", CoverPath = "cover.jpg" },
+        ];
+
+        var album = Assert.Single(LibraryQuery.Albums(tracks));
+        Assert.Equal(2, album.Count);
+        Assert.Equal("cover.jpg", album.CoverPath);
+    }
+
     [Theory]
     [InlineData(SongSortKey.Title, false, "A B C")]
     [InlineData(SongSortKey.Title, true, "C B A")]
