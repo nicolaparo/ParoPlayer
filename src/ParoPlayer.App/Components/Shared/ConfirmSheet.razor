@@ -1,0 +1,25 @@
+<ActionSheet Title="@Title" OnClose="OnCancel">
+    <ChildContent>
+        <p class="pb-3 text-sm text-mute">@Message</p>
+    </ChildContent>
+    <Footer Context="close">
+        <div class="my-2 flex gap-3">
+            <button type="button" class="min-h-12 flex-1 rounded-xl bg-panel2 px-4 font-semibold" @onclick="close">Cancel</button>
+            <button type="button" class="min-h-12 flex-1 rounded-xl bg-red-500/20 px-4 font-semibold text-red-400" @onclick="OnConfirm">
+                <i class="fa-solid fa-trash mr-2" aria-hidden="true"></i>@ConfirmLabel
+            </button>
+        </div>
+    </Footer>
+</ActionSheet>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+
+    [Parameter, EditorRequired] public string Message { get; set; } = "";
+
+    [Parameter] public string ConfirmLabel { get; set; } = "Delete";
+
+    [Parameter] public EventCallback OnConfirm { get; set; }
+
+    [Parameter] public EventCallback OnCancel { get; set; }
+}

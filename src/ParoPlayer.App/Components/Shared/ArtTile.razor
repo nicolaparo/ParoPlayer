@@ -1,0 +1,41 @@
+<div class="@SizeClass flex shrink-0 items-center justify-center rounded-lg font-display font-bold text-white/90" style="@Background" aria-hidden="true">
+    @if (Smart)
+    {
+        <i class="fa-solid fa-wand-magic-sparkles"></i>
+    }
+    else
+    {
+        @Initials
+    }
+</div>
+
+@code {
+    [Parameter] public string Seed { get; set; } = "";
+
+    [Parameter] public bool Smart { get; set; }
+
+    [Parameter] public string SizeClass { get; set; } = "size-12 text-base";
+
+    private string Background => $"background:linear-gradient(135deg,hsl({Hue} 45% 38%),#161a22)";
+
+    private int Hue
+    {
+        get
+        {
+            var hash = 7;
+            foreach (var c in Seed)
+            {
+                hash = unchecked((hash * 31) + c);
+            }
+
+            return Math.Abs(hash % 360);
+        }
+    }
+
+    private string Initials => new(Seed
+        .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+        .Take(2)
+        .Select(word => char.ToUpperInvariant(word.FirstOrDefault(char.IsLetterOrDigit)))
+        .Where(c => c != '\0')
+        .ToArray());
+}

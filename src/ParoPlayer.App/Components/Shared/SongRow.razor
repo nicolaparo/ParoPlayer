@@ -1,0 +1,88 @@
+<div class="flex min-h-16 w-full select-none items-center" @oncontextmenu:preventDefault>
+    <button type="button" class="flex min-h-16 min-w-0 flex-1 items-center gap-3 pl-4 text-left" aria-pressed="@(Selecting ? (Selected ? "true" : "false") : null)"
+            @onclick="ClickAsync" @ontouchstart="TouchStartAsync" @ontouchend="CancelPress" @ontouchcancel="CancelPress">
+        @if (Selecting)
+        {
+            <i class="@(Selected ? "fa-solid fa-circle-check text-accent" : "fa-regular fa-circle text-mute") text-xl" aria-hidden="true"></i>
+        }
+        <ArtTile Seed="@Track.Album" />
+        <span class="min-w-0 flex-1">
+            <span class="@(IsCurrent ? "text-accent" : "text-fg") block truncate font-semibold">@Track.Title</span>
+            <span class="block truncate text-xs text-mute">@LibraryQuery.Subtitle(Track)</span>
+        </span>
+        <span class="text-xs tabular-nums text-mute">@LibraryQuery.FormatDuration(Track.DurationSeconds)</span>
+    </button>
+    @if (OnMenu.HasDelegate && !Selecting)
+    {
+        <button type="button" aria-label="@($"More options for {Track.Title}")" class="flex size-12 shrink-0 items-center justify-center text-mute"
+                @onclick="() => OnMenu.InvokeAsync(Track)">
+            <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
+        </button>
+    }
+    else
+    {
+        <span class="w-4 shrink-0"></span>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public Track Track { get; set; } = default!;
+
+    [Parameter] public bool IsCurrent { get; set; }
+
+    [Parameter] public bool Selecting { get; set; }
+
+    [Parameter] public bool Selected { get; set; }
+
+    [Parameter] public EventCallback<Track> OnPlay { get; set; }
+
+    [Parameter] public EventCallback<Track> OnMenu { get; set; }
+
+    [Parameter] public EventCallback<Track> OnLongPress { get; set; }
+
+    private static readonly TimeSpan LongPressDelay = TimeSpan.FromMilliseconds(450);
+
+    private CancellationTokenSource? press;
+    private bool longPressed;
+
+    private async Task TouchStartAsync()
+    {
+        if (!OnLongPress.HasDelegate)
+        {
+            return;
+        }
+
+        longPressed = false;
+        CancelPress();
+        var source = press = new CancellationTokenSource();
+        try
+        {
+            await Task.Delay(LongPressDelay, source.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        longPressed = true;
+        await OnLongPress.InvokeAsync(Track);
+    }
+
+    // A touchcancel is what the browser sends when the finger starts scrolling.
+    private void CancelPress()
+    {
+        press?.Cancel();
+        press = null;
+    }
+
+    private async Task ClickAsync()
+    {
+        if (longPressed)
+        {
+            longPressed = false;
+            return;
+        }
+
+        await OnPlay.InvokeAsync(Track);
+    }
+}

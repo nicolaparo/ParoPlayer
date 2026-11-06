@@ -1,6 +1,291 @@
 @page "/"
+@inject LibraryService Songs
+@inject PlaylistService Lists
+@inject PlayerState Player
+@inject IPlayerService Playback
+@inject TrackRemovalService Removal
+@inject ITrackSharer Sharer
+@inject IHapticFeedback Haptics
+@implements IDisposable
+@inject TimeProvider Time
 
-<div class="p-4">
-    <h1 class="font-display text-2xl font-bold">Library</h1>
-    <p class="mt-2 text-sm text-mute">Coming soon.</p>
+<PageHeader Title="What's the mood?" Eyebrow="@Greeting.For(Time.GetLocalNow())">
+    <a href="settings" aria-label="Settings" class="flex size-12 shrink-0 items-center justify-center rounded-full bg-panel2">
+        <i class="fa-solid fa-gear" aria-hidden="true"></i>
+    </a>
+</PageHeader>
+
+@if (mixes.Count > 0)
+{
+    <div class="flex gap-3 overflow-x-auto px-4 pb-3 pt-1">
+        @foreach (var mix in mixes)
+        {
+            <a href="playlists/@mix.Playlist.Id" class="flex h-24 w-36 shrink-0 flex-col justify-between rounded-3xl rounded-bl-md p-3 text-white" style="@MixBackground(mix.Playlist.Name)">
+                <span class="font-display text-base font-bold leading-tight">@mix.Playlist.Name</span>
+                <span class="text-xs"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> @LibraryQuery.Pluralize(mix.Count, "song")</span>
+            </a>
+        }
+    </div>
+}
+
+<div class="mx-4 mb-2 flex min-h-12 items-center gap-2 rounded-xl bg-panel2 px-3">
+    <i class="fa-solid fa-magnifying-glass text-mute" aria-hidden="true"></i>
+    <input type="search" class="min-w-0 flex-1 bg-transparent py-3 text-fg outline-none placeholder:text-mute" placeholder="Search songs, artists, albums"
+           aria-label="Search" @bind="Query" @bind:event="oninput" />
 </div>
+
+<div class="flex gap-2 overflow-x-auto px-4 pb-2" role="tablist">
+    @foreach (var name in TabNames)
+    {
+        <button type="button" role="tab" aria-selected="@(tab == name ? "true" : "false")"
+                class="@(tab == name ? "bg-accent text-accent-fg" : "bg-panel2 text-mute") flex min-h-12 shrink-0 items-center rounded-full px-4 font-medium"
+                @onclick="() => SelectTab(name)">@name</button>
+    }
+</div>
+
+@if (all.Count == 0)
+{
+    <div class="mx-4 mt-4 rounded-2xl bg-panel2 p-4">
+        <p class="font-semibold">Your library is empty</p>
+        <p class="mb-4 mt-1 text-sm text-mute">Import audio files from this device. They are copied into the app and work offline.</p>
+        <ImportButton OnImported="ReloadAsync" />
+    </div>
+}
+else
+{
+    <p class="px-4 pb-1 text-xs text-mute">@LibraryQuery.Pluralize(all.Count, "song") · @LibraryQuery.FormatTotalDuration(all) on this device</p>
+
+    @if (tab == "Songs")
+    {
+        <Virtualize Items="songs" Context="track" ItemSize="64">
+            <SongRow @key="track.Id" Track="track" IsCurrent="@(Player.Current?.Id == track.Id)" Selecting="@(selection.Count > 0)"
+                     Selected="@selection.Contains(track.Id)" OnPlay="TapAsync" OnMenu="OpenMenu" OnLongPress="LongPressAsync" />
+        </Virtualize>
+
+        @if (selection.Count > 0)
+        {
+            <div class="sheet-enter sticky bottom-0 z-20 flex items-center gap-2 rounded-t-2xl border-t border-line bg-panel2 px-4" role="toolbar" aria-label="Selection">
+                <span class="min-w-0 flex-1 truncate font-semibold">@selection.Count selected</span>
+                <button type="button" aria-label="Share selected" class="flex size-12 items-center justify-center" @onclick="() => ShareAsync(SelectedTracks())">
+                    <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
+                </button>
+                <button type="button" aria-label="Delete selected" class="flex size-12 items-center justify-center text-red-400" @onclick="() => AskDelete(SelectedTracks())">
+                    <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                </button>
+                <button type="button" aria-label="Cancel selection" class="flex size-12 items-center justify-center text-mute" @onclick="ClearSelection">
+                    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                </button>
+            </div>
+        }
+    }
+    else if (tab == "Albums")
+    {
+        <div class="grid grid-cols-2 gap-3 px-4">
+            @foreach (var group in LibraryQuery.Albums(songs))
+            {
+                <div class="min-w-0">
+                    <ArtTile Seed="@group.Name" SizeClass="aspect-square w-full text-3xl rounded-2xl" />
+                    <div class="mt-1 truncate font-semibold">@group.Name</div>
+                    <div class="truncate text-xs text-mute">@group.Subtitle</div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        @foreach (var group in CurrentGroups())
+        {
+            <div class="flex min-h-16 items-center gap-3 px-4">
+                @if (tab == "Folders")
+                {
+                    <div class="flex size-12 shrink-0 items-center justify-center rounded-lg bg-panel2" aria-hidden="true">
+                        <i class="fa-solid fa-folder"></i>
+                    </div>
+                }
+                else
+                {
+                    <ArtTile Seed="@group.Name" />
+                }
+                <div class="min-w-0 flex-1">
+                    <div class="truncate font-semibold">@group.Name</div>
+                    <div class="text-xs text-mute">@group.Subtitle</div>
+                </div>
+            </div>
+        }
+    }
+
+    @if (songs.Count == 0)
+    {
+        <p class="px-4 pt-4 text-sm text-mute">No songs match your search.</p>
+    }
+}
+
+@if (message is not null)
+{
+    <p class="fade-enter fixed inset-x-4 bottom-24 z-30 rounded-xl bg-panel2 px-4 py-3 text-sm shadow-lg" role="status">@message</p>
+}
+
+@if (menuTrack is not null)
+{
+    <ActionSheet Title="@menuTrack.Title" OnClose="CloseMenu">
+        <button type="button" class="flex min-h-12 w-full items-center gap-3 rounded-xl px-3" @onclick="() => ShareAsync([menuTrack])">
+            <i class="fa-solid fa-share-nodes w-5 text-center" aria-hidden="true"></i>Share
+        </button>
+        <button type="button" class="flex min-h-12 w-full items-center gap-3 rounded-xl px-3" @onclick="() => ToggleSelect(menuTrack)">
+            <i class="fa-regular fa-square-check w-5 text-center" aria-hidden="true"></i>Select
+        </button>
+        <button type="button" class="flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-red-400" @onclick="() => AskDelete([menuTrack])">
+            <i class="fa-solid fa-trash w-5 text-center" aria-hidden="true"></i>Delete from device
+        </button>
+    </ActionSheet>
+}
+
+@if (deleting is not null)
+{
+    <ConfirmSheet Title="@($"Delete {LibraryQuery.Pluralize(deleting.Count, "song")}?")"
+                  Message="The files are removed from this device and from your playlists. This cannot be undone."
+                  OnConfirm="DeleteAsync" OnCancel="CancelDelete" />
+}
+
+@code {
+    private static readonly string[] TabNames = ["Songs", "Albums", "Artists", "Genres", "Folders"];
+
+    private record Mix(Playlist Playlist, int Count);
+
+    private List<Track> all = [];
+    private List<Track> songs = [];
+    private List<Mix> mixes = [];
+    private string tab = "Songs";
+    private string query = "";
+    private readonly HashSet<Guid> selection = [];
+    private Track? menuTrack;
+    private List<Track>? deleting;
+    private string? message;
+
+    private string Query
+    {
+        get => query;
+        set
+        {
+            query = value;
+            songs = [.. LibraryQuery.Search(all, query)];
+        }
+    }
+
+    protected override Task OnInitializedAsync() => ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        all = [.. await Songs.GetAllAsync()];
+        songs = [.. LibraryQuery.Search(all, query)];
+
+        var smart = (await Lists.GetAllAsync()).Where(playlist => playlist.IsSmart).OrderBy(playlist => playlist.Name);
+        mixes = [];
+        foreach (var playlist in smart)
+        {
+            mixes.Add(new Mix(playlist, (await Lists.GetTracksAsync(playlist.Id)).Count));
+        }
+    }
+
+    private void SelectTab(string name) => tab = name;
+
+    private IDisposable? playerSubscription;
+
+    protected override void OnInitialized() => playerSubscription = Player.Subscribe(() => InvokeAsync(StateHasChanged));
+
+    public void Dispose() => playerSubscription?.Dispose();
+
+    private Task TapAsync(Track track)
+    {
+        if (selection.Count > 0)
+        {
+            ToggleSelect(track);
+            return Task.CompletedTask;
+        }
+
+        return PlayAsync(track);
+    }
+
+    private void Buzz(HapticFeedbackType type)
+    {
+        if (Haptics.IsSupported)
+        {
+            Haptics.Perform(type);
+        }
+    }
+
+    private void LongPressAsync(Track track)
+    {
+        Buzz(HapticFeedbackType.LongPress);
+        ToggleSelect(track);
+    }
+
+    private void OpenMenu(Track track) => menuTrack = track;
+
+    private void CloseMenu() => menuTrack = null;
+
+    private void ToggleSelect(Track track)
+    {
+        menuTrack = null;
+        if (!selection.Remove(track.Id))
+        {
+            selection.Add(track.Id);
+        }
+    }
+
+    private void ClearSelection() => selection.Clear();
+
+    private List<Track> SelectedTracks() => [.. all.Where(track => selection.Contains(track.Id))];
+
+    private void AskDelete(List<Track> targets)
+    {
+        menuTrack = null;
+        deleting = targets;
+    }
+
+    private void CancelDelete() => deleting = null;
+
+    private async Task DeleteAsync()
+    {
+        if (deleting is not { } targets)
+        {
+            return;
+        }
+
+        deleting = null;
+        await Removal.RemoveAsync([.. targets.Select(track => track.Id)]);
+        selection.Clear();
+        await ReloadAsync();
+        message = $"Deleted {LibraryQuery.Pluralize(targets.Count, "song")}.";
+    }
+
+    private async Task ShareAsync(IReadOnlyCollection<Track> targets)
+    {
+        menuTrack = null;
+        if (targets.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            await Sharer.ShareAsync(targets);
+        }
+        catch (Exception ex) when (ex is IOException or FeatureNotSupportedException)
+        {
+            message = $"Could not share: {ex.Message}";
+        }
+    }
+
+    private Task PlayAsync(Track track) => Playback.PlayFromAsync(songs, track);
+
+    private IReadOnlyList<LibraryGroup> CurrentGroups() => tab switch
+    {
+        "Artists" => LibraryQuery.Artists(songs),
+        "Genres" => LibraryQuery.Genres(songs),
+        _ => LibraryQuery.Folders(songs),
+    };
+
+    private static string MixBackground(string name) =>
+        $"background:linear-gradient(150deg,hsl({Math.Abs(name.Sum(c => c) * 37 % 360)} 55% 45%),hsl({Math.Abs(name.Sum(c => c) * 37 % 360)} 45% 22%))";
+}

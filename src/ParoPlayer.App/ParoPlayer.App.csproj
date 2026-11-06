@@ -42,6 +42,26 @@
         <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
         <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="$(MauiVersion)" />
         <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
+        <PackageReference Include="Microsoft.Maui.DevFlow.Agent" Version="0.1.0-preview.13.26526.5" Condition="'$(Configuration)' == 'Debug'" />
+        <PackageReference Include="Microsoft.Maui.DevFlow.Blazor" Version="0.1.0-preview.13.26526.5" Condition="'$(Configuration)' == 'Debug'" />
+    </ItemGroup>
+
+    <!-- Native playback (AndroidX Media3). The packages list net10.0-android36.0; they restore for net11.0-android37. -->
+    <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+        <PackageReference Include="Xamarin.AndroidX.Media3.Common" Version="1.11.1" />
+        <PackageReference Include="Xamarin.AndroidX.Media3.ExoPlayer" Version="1.11.1" />
+        <PackageReference Include="Xamarin.AndroidX.Media3.Session" Version="1.11.1" />
+        <!-- Media3 raises Xamarin.AndroidX.Core to 1.19.0.1 (core-ktx classes are merged into it) while MAUI keeps
+             Core.Core.Ktx at 1.17.0.2; D8 then fails with "Type androidx.core.animation.AnimatorKt$addListener$2 is defined
+             multiple times". Raising Core.Core.Ktx to the same version removes the duplicate. -->
+        <PackageReference Include="Xamarin.AndroidX.Core.Core.Ktx" Version="1.19.0.1" />
+    </ItemGroup>
+
+    <!-- ffmpeg CLI (hzw1199/Android-FFmpeg-Prebuilt, see docs/download.md for source and checksum). Packaged as a native
+         library so Android extracts it to the app's native library dir, the only place an app may execute files from.
+         Without the file the build still works and downloads are kept unconverted. -->
+    <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android' And Exists('Platforms\Android\lib\arm64-v8a\libffmpeg.so')">
+        <AndroidNativeLibrary Include="Platforms\Android\lib\arm64-v8a\libffmpeg.so" Abi="arm64-v8a" />
     </ItemGroup>
 
     <ItemGroup>

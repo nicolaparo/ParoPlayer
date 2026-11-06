@@ -11,7 +11,7 @@ Offline-first music player for Android. .NET MAUI **Blazor Hybrid** (Tailwind CS
 3. **Surgical changes.** Every changed line traces to the request.
 4. **Goal-driven.** Define a verifiable check (usually a test) and loop until it passes.
 
-## Engineering rules (same as Spesa Perfetta)
+## Engineering rules
 
 - **SOLID, KISS, DRY.** Small single-purpose classes; abstractions only at real boundaries.
 - **C# latest.** Primary constructors, collection expressions, records, pattern matching, file-scoped namespaces.

@@ -1,0 +1,41 @@
+@inject IMusicImporter Importer
+
+<button type="button" class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 font-semibold text-accent-fg disabled:opacity-60"
+        disabled="@busy" @onclick="ImportAsync">
+    <i class="fa-solid fa-file-import" aria-hidden="true"></i>
+    Import music
+</button>
+@if (message is not null)
+{
+    <p class="mt-2 text-sm text-mute" role="status">@message</p>
+}
+
+@code {
+    [Parameter] public EventCallback<int> OnImported { get; set; }
+
+    private bool busy;
+    private string? message;
+
+    private async Task ImportAsync()
+    {
+        busy = true;
+        message = null;
+        try
+        {
+            var count = await Importer.PickAndImportAsync();
+            message = count == 0 ? "No files imported." : $"Imported {LibraryQuery.Pluralize(count, "song")}.";
+            if (count > 0)
+            {
+                await OnImported.InvokeAsync(count);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException or PermissionException)
+        {
+            message = $"Import failed: {ex.Message}";
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

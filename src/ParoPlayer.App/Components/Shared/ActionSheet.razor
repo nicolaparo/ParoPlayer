@@ -1,0 +1,55 @@
+<div class="@(closing ? "fade-leave" : "fade-enter") fixed inset-0 z-40 flex flex-col justify-end bg-black/60" @onclick="CloseAsync">
+    <div role="dialog" aria-modal="true" aria-label="@Title"
+         class="@(closing ? "sheet-leave" : "sheet-enter") @(Tall ? "h-[80dvh]" : "max-h-[85dvh]") flex flex-col rounded-t-3xl bg-panel px-4 pb-safe"
+         @onclick:stopPropagation>
+        <div class="mx-auto mb-2 mt-2 h-1 w-10 shrink-0 rounded-full bg-line" aria-hidden="true"></div>
+        <p class="shrink-0 truncate pb-2 font-display text-lg font-bold">@Title</p>
+        <div class="min-h-0 flex-1 overflow-y-auto">
+            @ChildContent
+        </div>
+        @if (Footer is not null)
+        {
+            @Footer(CloseCallback)
+        }
+        else
+        {
+            <button type="button" class="my-2 flex min-h-12 w-full shrink-0 items-center gap-3 rounded-xl px-3 text-mute" @onclick="CloseAsync">
+                <i class="fa-solid fa-xmark w-5 text-center" aria-hidden="true"></i>@CloseLabel
+            </button>
+        }
+    </div>
+</div>
+
+@code {
+    private const int LeaveMilliseconds = 180;
+
+    private bool closing;
+
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+
+    [Parameter] public bool Tall { get; set; }
+
+    [Parameter] public string CloseLabel { get; set; } = "Cancel";
+
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Replaces the default Cancel row. Receives the callback that closes the sheet with its leave animation.</summary>
+    [Parameter] public RenderFragment<EventCallback>? Footer { get; set; }
+
+    private EventCallback CloseCallback => EventCallback.Factory.Create(this, CloseAsync);
+
+    private async Task CloseAsync()
+    {
+        if (closing)
+        {
+            return;
+        }
+
+        closing = true;
+        StateHasChanged();
+        await Task.Delay(LeaveMilliseconds);
+        await OnClose.InvokeAsync();
+    }
+}

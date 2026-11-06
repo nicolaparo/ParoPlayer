@@ -1,0 +1,98 @@
+@page "/now"
+@inject PlayerState Player
+@inject IPlayerService Playback
+@implements IDisposable
+
+<PageHeader Title="Now playing" BackHref="." />
+
+@if (Player.Snapshot.Current is not { } track)
+{
+    <p class="px-4 pt-4 text-sm text-mute">Nothing is playing. Pick a song from your library.</p>
+}
+else
+{
+    var snapshot = Player.Snapshot;
+    var seconds = (int)snapshot.Duration.TotalSeconds;
+    var shown = scrubbing ? scrubSeconds : (int)snapshot.Position.TotalSeconds;
+
+    <div class="mx-auto flex w-full max-w-md flex-col gap-6 px-6 pb-6 pt-2">
+        <ArtTile Seed="@track.Album" SizeClass="aspect-square w-full text-7xl rounded-3xl" />
+
+        <div class="min-w-0">
+            <h2 class="truncate font-display text-2xl font-bold">@track.Title</h2>
+            <p class="truncate text-mute">@LibraryQuery.Subtitle(track)</p>
+        </div>
+
+        <div>
+            <input type="range" min="0" max="@seconds" value="@shown" aria-label="Seek" class="h-12 w-full accent-accent"
+                   disabled="@(seconds == 0)" @oninput="OnScrub" @onchange="SeekAsync" />
+            <div class="flex justify-between text-xs tabular-nums text-mute">
+                <span>@LibraryQuery.FormatDuration(shown)</span>
+                <span>@LibraryQuery.FormatDuration(seconds)</span>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-between">
+            <button type="button" aria-label="Shuffle" aria-pressed="@(snapshot.Shuffle ? "true" : "false")"
+                    class="@(snapshot.Shuffle ? "text-accent" : "text-mute") flex size-12 items-center justify-center" @onclick="ToggleShuffleAsync">
+                <i class="fa-solid fa-shuffle text-xl" aria-hidden="true"></i>
+            </button>
+            <button type="button" aria-label="Previous" class="flex size-14 items-center justify-center" @onclick="() => Playback.PreviousAsync()">
+                <i class="fa-solid fa-backward-step text-2xl" aria-hidden="true"></i>
+            </button>
+            <button type="button" aria-label="@(snapshot.IsPlaying ? "Pause" : "Play")" class="flex size-16 items-center justify-center rounded-full bg-accent text-accent-fg" @onclick="TogglePlayAsync">
+                <i class="@(snapshot.IsPlaying ? "fa-solid fa-pause" : "fa-solid fa-play") text-2xl" aria-hidden="true"></i>
+            </button>
+            <button type="button" aria-label="Next" class="flex size-14 items-center justify-center" @onclick="() => Playback.NextAsync()">
+                <i class="fa-solid fa-forward-step text-2xl" aria-hidden="true"></i>
+            </button>
+            <button type="button" aria-label="@RepeatLabel(snapshot.Repeat)" class="@(snapshot.Repeat == RepeatMode.Off ? "text-mute" : "text-accent") flex size-12 items-center justify-center" @onclick="CycleRepeatAsync">
+                <i class="@(snapshot.Repeat == RepeatMode.One ? "fa-solid fa-1" : "fa-solid fa-repeat") text-xl" aria-hidden="true"></i>
+            </button>
+        </div>
+    </div>
+}
+
+@code {
+    private IDisposable? subscription;
+    private bool scrubbing;
+    private int scrubSeconds;
+
+    protected override void OnInitialized() => subscription = Player.SubscribeProgress(() => InvokeAsync(StateHasChanged));
+
+    public void Dispose() => subscription?.Dispose();
+
+    private void OnScrub(ChangeEventArgs e)
+    {
+        scrubbing = true;
+        scrubSeconds = int.TryParse(e.Value?.ToString(), out var value) ? value : 0;
+    }
+
+    private async Task SeekAsync(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var value))
+        {
+            await Playback.SeekToAsync(TimeSpan.FromSeconds(value));
+        }
+
+        scrubbing = false;
+    }
+
+    private Task TogglePlayAsync() => Player.Snapshot.IsPlaying ? Playback.PauseAsync() : Playback.ResumeAsync();
+
+    private Task ToggleShuffleAsync() => Playback.SetShuffleAsync(!Player.Snapshot.Shuffle);
+
+    private Task CycleRepeatAsync() => Playback.SetRepeatAsync(Player.Snapshot.Repeat switch
+    {
+        RepeatMode.Off => RepeatMode.All,
+        RepeatMode.All => RepeatMode.One,
+        _ => RepeatMode.Off,
+    });
+
+    private static string RepeatLabel(RepeatMode mode) => mode switch
+    {
+        RepeatMode.All => "Repeat all",
+        RepeatMode.One => "Repeat one",
+        _ => "Repeat off",
+    };
+}

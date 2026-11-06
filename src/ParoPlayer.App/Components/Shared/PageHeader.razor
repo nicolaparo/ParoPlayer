@@ -1,0 +1,26 @@
+<header class="flex items-center gap-2 px-4 pb-2 pt-3">
+    @if (BackHref is not null)
+    {
+        <a href="@BackHref" aria-label="Back" class="flex size-12 shrink-0 items-center justify-center rounded-full bg-panel2">
+            <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+        </a>
+    }
+    <div class="min-w-0 flex-1">
+        @if (Eyebrow is not null)
+        {
+            <div class="text-sm text-mute">@Eyebrow</div>
+        }
+        <h1 class="truncate font-display text-2xl font-bold">@Title</h1>
+    </div>
+    @ChildContent
+</header>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+
+    [Parameter] public string? Eyebrow { get; set; }
+
+    [Parameter] public string? BackHref { get; set; }
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

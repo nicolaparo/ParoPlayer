@@ -1,0 +1,53 @@
+@using ParoPlayer.Core.Download
+
+<div class="flex min-h-14 items-center gap-3 py-1">
+    <ArtTile Seed="@Item.Media.Title" />
+    <div class="min-w-0 flex-1">
+        <div class="truncate">@Item.Media.Title</div>
+        <div class="@(Item.State == DownloadState.Failed ? "text-bad" : "text-mute") text-xs" role="status">@Status</div>
+        @if (Item.IsRunning || Item.State == DownloadState.Queued)
+        {
+            <div class="mt-1 h-1 w-full overflow-hidden rounded-full bg-line" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@Percent">
+                <div class="h-full rounded-full bg-accent" style="width:@(Percent)%"></div>
+            </div>
+        }
+    </div>
+    @if (Item.State is DownloadState.Failed or DownloadState.Canceled)
+    {
+        <button type="button" aria-label="Retry @Item.Media.Title" class="flex size-12 shrink-0 items-center justify-center rounded-full bg-panel2" @onclick="OnRetry">
+            <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+        </button>
+    }
+    else if (Item.State == DownloadState.Done)
+    {
+        <i class="fa-solid fa-circle-check flex size-12 shrink-0 items-center justify-center text-accent" aria-label="Done" role="img"></i>
+    }
+    else
+    {
+        <button type="button" aria-label="Cancel @Item.Media.Title" class="flex size-12 shrink-0 items-center justify-center rounded-full bg-panel2" @onclick="OnCancel">
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public DownloadItem Item { get; set; } = null!;
+
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    [Parameter] public EventCallback OnRetry { get; set; }
+
+    private int Percent => (int)Math.Round(Item.Progress * 100);
+
+    private string Status => Item.State switch
+    {
+        DownloadState.Queued => "Waiting",
+        DownloadState.Downloading => $"Downloading {Percent}%",
+        DownloadState.Converting => "Converting",
+        DownloadState.Tagging => "Adding tags",
+        DownloadState.Importing => "Adding to library",
+        DownloadState.Done => Item.Message ?? "In your library",
+        DownloadState.Canceled => "Canceled",
+        _ => Item.Message ?? "Failed",
+    };
+}

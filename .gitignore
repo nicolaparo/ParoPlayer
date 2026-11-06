@@ -8,3 +8,6 @@ node_modules/
 *.jks
 .idea/
 .claude/settings.local.json
+
+# Prebuilt ffmpeg (15 MB), fetched per docs/download.md
+src/ParoPlayer.App/Platforms/Android/lib/

@@ -1,4 +1,5 @@
 using ParoPlayer.Core.Data;
+using ParoPlayer.Core.Library;
 using ParoPlayer.Core.Models;
 
 namespace ParoPlayer.Core.Services;
@@ -16,16 +17,7 @@ public class LibraryService(IRepository<Track> tracks, TimeProvider timeProvider
 
     public async Task<IReadOnlyList<Track>> SearchAsync(string query)
     {
-        var all = await tracks.GetAllAsync();
-        if (string.IsNullOrWhiteSpace(query))
-        {
-            return all;
-        }
-
-        return [.. all.Where(track =>
-            track.Title.Contains(query, StringComparison.OrdinalIgnoreCase)
-            || track.Artist.Contains(query, StringComparison.OrdinalIgnoreCase)
-            || track.Album.Contains(query, StringComparison.OrdinalIgnoreCase))];
+        return LibraryQuery.Search(await tracks.GetAllAsync(), query);
     }
 
     /// <summary>Increments the play count and stamps LastPlayedAt. Returns null when the track does not exist.</summary>

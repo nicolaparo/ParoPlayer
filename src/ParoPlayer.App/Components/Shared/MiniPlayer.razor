@@ -1,0 +1,36 @@
+@inject PlayerState Player
+@inject IPlayerService Playback
+@inject NavigationManager Navigation
+@implements IDisposable
+
+@if (!Hidden && Player.Snapshot.Current is { } track)
+{
+    <div class="sheet-enter flex min-h-16 shrink-0 items-center gap-1 border-t border-line bg-panel2 pr-2">
+        <a href="now" aria-label="Open now playing" class="flex min-h-16 min-w-0 flex-1 items-center gap-3 px-4">
+            <ArtTile Seed="@track.Album" />
+            <span class="min-w-0 flex-1">
+                <span class="block truncate font-semibold">@track.Title</span>
+                <span class="block truncate text-xs text-mute">@track.Artist</span>
+            </span>
+        </a>
+        <button type="button" aria-label="Previous" class="flex size-12 shrink-0 items-center justify-center text-fg" @onclick="() => Playback.PreviousAsync()">
+            <i class="fa-solid fa-backward-step text-xl" aria-hidden="true"></i>
+        </button>
+        <button type="button" aria-label="@(Player.Snapshot.IsPlaying ? "Pause" : "Play")" class="flex size-12 shrink-0 items-center justify-center rounded-full bg-accent text-accent-fg" @onclick="TogglePlayAsync">
+            <i class="@(Player.Snapshot.IsPlaying ? "fa-solid fa-pause" : "fa-solid fa-play") text-xl" aria-hidden="true"></i>
+        </button>
+    </div>
+}
+
+@code {
+    private IDisposable? subscription;
+
+    /// <summary>True on the Now Playing page, which has its own controls.</summary>
+    [Parameter] public bool Hidden { get; set; }
+
+    protected override void OnInitialized() => subscription = Player.Subscribe(() => InvokeAsync(StateHasChanged));
+
+    public void Dispose() => subscription?.Dispose();
+
+    private Task TogglePlayAsync() => Player.Snapshot.IsPlaying ? Playback.PauseAsync() : Playback.ResumeAsync();
+}

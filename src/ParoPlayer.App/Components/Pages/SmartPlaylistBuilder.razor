@@ -1,0 +1,132 @@
+@page "/playlists/smart"
+@inject LibraryService Library
+@inject PlaylistService Playlists
+@inject ParoPlayer.Core.Engine.ISmartPlaylistEngine Engine
+@inject NavigationManager Navigation
+
+<PageHeader Title="Smart playlist" BackHref="playlists" />
+
+<div class="px-4 pb-6">
+    <label for="smart-name" class="text-xs uppercase tracking-wider text-mute">Name</label>
+    <input id="smart-name" type="text" class="mb-3 mt-1 min-h-12 w-full rounded-xl border border-line bg-panel2 px-3 text-fg"
+           @bind="draft.Name" @bind:event="oninput" />
+
+    <label for="smart-match" class="text-xs uppercase tracking-wider text-mute">Songs must match</label>
+    <select id="smart-match" class="mb-3 mt-1 min-h-12 w-full rounded-xl border border-line bg-panel2 px-3 text-fg"
+            @bind="draft.MatchMode" @bind:after="Refresh">
+        @foreach (var mode in Enum.GetValues<MatchMode>())
+        {
+            <option value="@mode">@SmartPlaylistDraft.Label(mode)</option>
+        }
+    </select>
+
+    <h2 class="mb-2 mt-4 text-xs uppercase tracking-wider text-mute">Rules</h2>
+    @foreach (var rule in draft.Rules)
+    {
+        <div @key="rule" class="mb-3 rounded-2xl bg-panel2 p-3">
+            <div class="flex items-center gap-2">
+                <select aria-label="Field" class="min-h-12 min-w-0 flex-1 rounded-xl border border-line bg-panel px-3 text-fg"
+                        value="@rule.Field" @onchange="e => ChangeField(rule, e.Value)">
+                    @foreach (var field in SmartPlaylistDraft.Fields)
+                    {
+                        <option value="@field">@SmartPlaylistDraft.Label(field)</option>
+                    }
+                </select>
+                <button type="button" aria-label="Remove rule" class="flex size-12 shrink-0 items-center justify-center text-bad" @onclick="() => RemoveRule(rule)">
+                    <i class="fa-solid fa-xmark text-xl" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div class="mt-2 flex gap-2">
+                <select aria-label="Operator" class="min-h-12 min-w-0 flex-1 rounded-xl border border-line bg-panel px-3 text-fg"
+                        @bind="rule.Operator" @bind:after="Refresh">
+                    @foreach (var op in SmartPlaylistDraft.OperatorsFor(rule.Field))
+                    {
+                        <option value="@op">@SmartPlaylistDraft.Label(op)</option>
+                    }
+                </select>
+                <input type="text" aria-label="Value" inputmode="@(SmartPlaylistDraft.IsText(rule.Field) ? "text" : "numeric")"
+                       class="min-h-12 min-w-0 flex-1 rounded-xl border border-line bg-panel px-3 text-fg"
+                       @bind="rule.Value" @bind:event="oninput" @bind:after="Refresh" />
+            </div>
+        </div>
+    }
+    <button type="button" class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-panel2 font-semibold" @onclick="AddRule">
+        <i class="fa-solid fa-plus" aria-hidden="true"></i>Add rule
+    </button>
+
+    <label for="smart-sort" class="mt-4 block text-xs uppercase tracking-wider text-mute">Order by</label>
+    <select id="smart-sort" class="mb-3 mt-1 min-h-12 w-full rounded-xl border border-line bg-panel2 px-3 text-fg"
+            @bind="draft.SortBy" @bind:after="Refresh">
+        @foreach (var sort in SmartPlaylistDraft.Sorts)
+        {
+            <option value="@sort">@SmartPlaylistDraft.Label(sort)</option>
+        }
+    </select>
+
+    <label for="smart-limit" class="text-xs uppercase tracking-wider text-mute">Limit</label>
+    <select id="smart-limit" class="mb-3 mt-1 min-h-12 w-full rounded-xl border border-line bg-panel2 px-3 text-fg"
+            @bind="draft.Limit" @bind:after="Refresh">
+        @foreach (var limit in SmartPlaylistDraft.Limits)
+        {
+            <option value="@limit">@limit songs</option>
+        }
+    </select>
+
+    <h2 class="mb-1 mt-4 text-xs uppercase tracking-wider text-mute">Preview · @LibraryQuery.Pluralize(matches.Count, "match")</h2>
+</div>
+
+@if (matches.Count == 0)
+{
+    <p class="px-4 text-sm text-mute">No songs match these rules.</p>
+}
+
+@foreach (var track in matches.Take(PreviewCount))
+{
+    <SongRow @key="track.Id" Track="track" />
+}
+
+<div class="px-4 pb-6 pt-4">
+    <button type="button" class="min-h-12 w-full rounded-xl bg-accent px-4 font-semibold text-accent-fg disabled:opacity-60"
+            disabled="@(!draft.CanSave)" @onclick="SaveAsync">Save playlist</button>
+</div>
+
+@code {
+    private const int PreviewCount = 5;
+
+    private readonly SmartPlaylistDraft draft = new();
+    private IReadOnlyList<Track> library = [];
+    private IReadOnlyList<Track> matches = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        draft.AddRule();
+        library = await Library.GetAllAsync();
+        Refresh();
+    }
+
+    private void Refresh() => matches = Engine.Evaluate(library, draft.ToDefinition());
+
+    private void AddRule()
+    {
+        draft.AddRule();
+        Refresh();
+    }
+
+    private void RemoveRule(RuleDraft rule)
+    {
+        draft.RemoveRule(rule);
+        Refresh();
+    }
+
+    private void ChangeField(RuleDraft rule, object? value)
+    {
+        SmartPlaylistDraft.ChangeField(rule, Enum.Parse<SmartField>((string)value!));
+        Refresh();
+    }
+
+    private async Task SaveAsync()
+    {
+        var playlist = await Playlists.CreateSmartAsync(draft.Name.Trim(), draft.ToDefinition());
+        Navigation.NavigateTo($"playlists/{playlist.Id}");
+    }
+}

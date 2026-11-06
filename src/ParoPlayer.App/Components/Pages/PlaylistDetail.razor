@@ -1,0 +1,156 @@
+@page "/playlists/{Id:guid}"
+@inject PlaylistService Playlists
+@inject LibraryService Library
+@inject PlayerState Player
+@inject IPlayerService Playback
+@implements IDisposable
+@inject Random Rng
+
+<PageHeader Title="@(playlist?.Name ?? "Playlist")" BackHref="playlists" />
+
+@if (playlist is null)
+{
+    <p class="px-4 pt-4 text-sm text-mute">This playlist no longer exists.</p>
+}
+else
+{
+    <div class="mx-4 mb-2 flex items-center gap-2 rounded-2xl bg-panel2 p-3">
+        <div class="min-w-0 flex-1">
+            <div class="font-semibold">@(playlist.IsSmart ? "Smart playlist" : "Manual playlist")</div>
+            <div class="text-xs text-mute">@LibraryQuery.Pluralize(tracks.Count, "song")@(playlist.IsSmart ? " · refreshes automatically" : "")</div>
+        </div>
+        <button type="button" class="min-h-12 rounded-xl bg-accent px-4 font-semibold text-accent-fg disabled:opacity-60"
+                disabled="@(tracks.Count == 0)" @onclick="PlayFirst">
+            <i class="fa-solid fa-play mr-1" aria-hidden="true"></i>Play
+        </button>
+        <button type="button" aria-label="Shuffle" class="flex size-12 items-center justify-center rounded-xl bg-panel disabled:opacity-60"
+                disabled="@(tracks.Count == 0)" @onclick="PlayRandom">
+            <i class="fa-solid fa-shuffle" aria-hidden="true"></i>
+        </button>
+    </div>
+
+    @if (undoTrack is not null)
+    {
+        <div class="fade-enter fixed inset-x-4 bottom-24 z-30 flex items-center justify-between gap-2 rounded-xl bg-panel2 px-3 shadow-lg" role="status">
+            <span class="min-w-0 truncate text-sm">Removed @undoTrack.Title</span>
+            <button type="button" class="min-h-12 px-3 font-semibold text-accent" @onclick="UndoAsync">Undo</button>
+        </div>
+    }
+
+    @if (!playlist.IsSmart)
+    {
+        <div class="px-4 pb-2">
+            <button type="button" class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-panel2 font-semibold" @onclick="ToggleAdding">
+                <i class="fa-solid fa-plus text-accent" aria-hidden="true"></i>
+                Add songs
+            </button>
+        </div>
+    }
+
+    @if (adding)
+    {
+        <ActionSheet Title="Add songs" Tall="true" CloseLabel="Done" OnClose="ToggleAdding">
+            @if (candidates.Count == 0)
+            {
+                <p class="text-sm text-mute">Every song in your library is already in this playlist.</p>
+            }
+
+            @foreach (var track in candidates)
+            {
+                <div @key="track.Id" class="flex min-h-16 items-center">
+                    <div class="min-w-0 flex-1">
+                        <SongRow Track="track" OnPlay="AddAsync" />
+                    </div>
+                    <button type="button" aria-label="@($"Add {track.Title}")" class="flex size-12 shrink-0 items-center justify-center text-accent" @onclick="() => AddAsync(track)">
+                        <i class="fa-solid fa-circle-plus text-xl" aria-hidden="true"></i>
+                    </button>
+                </div>
+            }
+        </ActionSheet>
+    }
+
+    @if (tracks.Count == 0)
+    {
+        <p class="px-4 pt-2 text-sm text-mute">@(playlist.IsSmart ? "No songs match these rules." : "This playlist is empty.")</p>
+    }
+
+    <Virtualize Items="tracks" Context="track" ItemSize="64">
+        <div @key="track.Id" class="flex min-h-16 items-center">
+            <div class="min-w-0 flex-1">
+                <SongRow Track="track" IsCurrent="@(Player.Current?.Id == track.Id)" OnPlay="PlayAsync" />
+            </div>
+            @if (!playlist.IsSmart)
+            {
+                <button type="button" aria-label="@($"Remove {track.Title}")" class="flex size-12 shrink-0 items-center justify-center text-mute" @onclick="() => RemoveAsync(track)">
+                    <i class="fa-solid fa-circle-minus text-xl" aria-hidden="true"></i>
+                </button>
+            }
+        </div>
+    </Virtualize>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private Playlist? playlist;
+    private List<Track> tracks = [];
+    private List<Track> candidates = [];
+    private bool adding;
+    private Track? undoTrack;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        playlist = await Playlists.GetAsync(Id);
+        undoTrack = null;
+        adding = false;
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        if (playlist is null)
+        {
+            return;
+        }
+
+        tracks = [.. await Playlists.GetTracksAsync(Id)];
+        var inPlaylist = tracks.Select(track => track.Id).ToHashSet();
+        candidates = [.. (await Library.GetAllAsync()).Where(track => !inPlaylist.Contains(track.Id))];
+    }
+
+    private IDisposable? playerSubscription;
+
+    protected override void OnInitialized() => playerSubscription = Player.Subscribe(() => InvokeAsync(StateHasChanged));
+
+    public void Dispose() => playerSubscription?.Dispose();
+
+    private Task PlayAsync(Track track) => Playback.PlayFromAsync(tracks, track);
+
+    private Task PlayFirst() => PlayAsync(tracks[0]);
+
+    private Task PlayRandom() => Playback.PlayShuffledAsync(tracks, Rng);
+
+    private void ToggleAdding() => adding = !adding;
+
+    private async Task AddAsync(Track track)
+    {
+        await Playlists.AddTrackAsync(Id, track.Id);
+        await ReloadAsync();
+    }
+
+    private async Task RemoveAsync(Track track)
+    {
+        await Playlists.RemoveTrackAsync(Id, track.Id);
+        undoTrack = track;
+        await ReloadAsync();
+    }
+
+    private async Task UndoAsync()
+    {
+        if (undoTrack is { } track)
+        {
+            undoTrack = null;
+            await AddAsync(track);
+        }
+    }
+}

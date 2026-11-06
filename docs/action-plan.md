@@ -5,10 +5,10 @@
 2. [x] `maui-cli` skill written by hand (`.claude/skills/maui-cli/SKILL.md`). No skills installed via `maui ai`/`devflow`.
 3. [~] Toolchain proof: Windows build OK, `maui-android` workload installed; Android build waits for the API 37 platform (user action).
 4. [x] Scaffold: `global.json`, analyzers, `.editorconfig`, Core + Tests, `CodingRulesTests` (48 tests green). [ ] App project + Tailwind pipeline (`copy-vendor.mjs`).
-5. [~] Core: models, SQLite repositories, smart-playlist engine, library/playlist services done. [ ] File import into `.nomedia` library folder, queue.
+5. [~] Core: models, SQLite repositories, smart-playlist engine, library/playlist services done. [x] File import into `.nomedia` library folder (`TrackImportService`, TagLibSharp reader). [ ] Queue.
 6. [ ] Spike: native Media3 service playing a file with screen off, controlled from Blazor.
-7. [ ] UI from approved mockup (Library, Now Playing, Playlists, Smart builder, Download, Tag editor, Settings).
-8. [ ] Downloads (YoutubeExplode + TagLibSharp) with background notification.
+7. [~] UI from approved mockup: [x] Library, Playlists (list, detail, smart builder), Settings, Import. [ ] Now Playing, Download, Tag editor (see `docs/ui-implementation.md`).
+8. [~] Downloads (YoutubeExplode + ffmpeg + TagLibSharp, queue, Wi-Fi only, foreground service): built and unit-tested, NOT tested on a device. See `docs/download.md`. [ ] Online metadata lookup, [ ] verify on phone.
 9. [ ] Discogs tag override.
 10. [ ] Android Auto browse tree + DHU test.
 11. [ ] Wi-Fi transfer: server spike, approval flow, web UI, upload/download.

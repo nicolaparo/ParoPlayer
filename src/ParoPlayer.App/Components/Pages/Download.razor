@@ -1,6 +1,167 @@
 @page "/download"
+@using ParoPlayer.Core.Download
+@inject DownloadQueue Queue
+@inject DownloadRequests Requests
+@inject IDownloadPolicy Policy
+@inject INotificationPermission Notifications
+@inject IClipboard Clipboard
+@implements IDisposable
 
-<div class="p-4">
-    <h1 class="font-display text-2xl font-bold">Download</h1>
-    <p class="mt-2 text-sm text-mute">Coming soon.</p>
+<PageHeader Title="Download" />
+
+<div class="px-4 pb-6">
+    <form class="rounded-2xl bg-panel2 p-3" @onsubmit="SubmitAsync">
+        <label for="download-input" class="text-xs uppercase tracking-wider text-mute">Link or search</label>
+        <div class="mt-1 flex gap-2">
+            <input id="download-input" type="text" inputmode="url" enterkeyhint="go" autocomplete="off" autocapitalize="none"
+                   class="min-h-12 min-w-0 flex-1 rounded-xl border border-line bg-bg px-3 text-fg"
+                   placeholder="Paste a video or playlist link" @bind="input" @bind:event="oninput" />
+            <button type="button" aria-label="Paste from clipboard" class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-panel" @onclick="PasteAsync">
+                <i class="fa-solid fa-paste" aria-hidden="true"></i>
+            </button>
+        </div>
+        <button type="submit" class="mt-2 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 font-semibold text-accent-fg disabled:opacity-60"
+                disabled="@(busy || string.IsNullOrWhiteSpace(input))">
+            <i class="@(busy ? "fa-solid fa-spinner fa-spin" : "fa-solid fa-download")" aria-hidden="true"></i>
+            @(busy ? "Looking up..." : "Download")
+        </button>
+        @if (message is not null)
+        {
+            <p class="mt-2 text-sm @(messageIsError ? "text-bad" : "text-mute")" role="status">@message</p>
+        }
+        @if (blockReason is { } reason && message is null)
+        {
+            <p class="mt-2 text-sm text-mute" role="status">@reason</p>
+        }
+    </form>
+
+    @if (results.Count > 0)
+    {
+        <div class="mb-1 mt-6 flex items-center justify-between">
+            <h2 class="text-xs uppercase tracking-wider text-mute">Results</h2>
+            <button type="button" class="min-h-12 px-2 text-sm text-mute" @onclick="ClearResults">Clear</button>
+        </div>
+        @foreach (var media in results)
+        {
+            <div class="flex min-h-14 items-center gap-3 py-1" @key="media.Id">
+                <ArtTile Seed="@media.Title" />
+                <div class="min-w-0 flex-1">
+                    <div class="truncate">@media.Title</div>
+                    <div class="truncate text-xs text-mute">@media.Author · @LibraryQuery.FormatDuration((int)media.Duration.TotalSeconds)</div>
+                </div>
+                <button type="button" aria-label="Download @media.Title" class="flex size-12 shrink-0 items-center justify-center rounded-full bg-panel2" @onclick="() => AddResultAsync(media)">
+                    <i class="fa-solid fa-download" aria-hidden="true"></i>
+                </button>
+            </div>
+        }
+    }
+
+    @if (waiting.Count > 0)
+    {
+        <h2 class="mb-1 mt-6 text-xs uppercase tracking-wider text-mute">Queue</h2>
+        @foreach (var item in waiting)
+        {
+            <DownloadRow Item="item" OnCancel="() => Queue.CancelAsync(item.Id)" OnRetry="() => Queue.RetryAsync(item.Id)" @key="item.Id" />
+        }
+    }
+
+    @if (finished.Count > 0)
+    {
+        <div class="mb-1 mt-6 flex items-center justify-between">
+            <h2 class="text-xs uppercase tracking-wider text-mute">Finished</h2>
+            <button type="button" class="min-h-12 px-2 text-sm text-mute" @onclick="() => Queue.ClearFinishedAsync()">Clear finished</button>
+        </div>
+        @foreach (var item in finished)
+        {
+            <DownloadRow Item="item" OnCancel="() => Queue.CancelAsync(item.Id)" OnRetry="() => Queue.RetryAsync(item.Id)" @key="item.Id" />
+        }
+    }
+
+    @if (waiting.Count == 0 && finished.Count == 0 && results.Count == 0)
+    {
+        <p class="mt-6 text-sm text-mute">Downloaded songs are saved in your library and play offline. Downloading needs an internet connection, nothing else in ParoPlayer does.</p>
+    }
 </div>
+
+@code {
+    private IDisposable? subscription;
+    private string input = "";
+    private string? message;
+    private bool messageIsError;
+    private bool busy;
+    private IReadOnlyList<MediaInfo> results = [];
+
+    private IReadOnlyList<DownloadItem> waiting = [];
+    private IReadOnlyList<DownloadItem> finished = [];
+    private string? blockReason;
+
+    protected override void OnInitialized()
+    {
+        Refresh();
+        subscription = Queue.Subscribe(() => InvokeAsync(() =>
+        {
+            Refresh();
+            StateHasChanged();
+        }));
+    }
+
+    public void Dispose() => subscription?.Dispose();
+
+    private void Refresh()
+    {
+        var items = Queue.Items;
+        waiting = [.. items.Where(item => !item.IsFinished)];
+        finished = [.. items.Where(item => item.IsFinished).Reverse()];
+        blockReason = Policy.BlockReason();
+    }
+
+    private async Task PasteAsync()
+    {
+        if (await Clipboard.GetTextAsync() is { Length: > 0 } text)
+        {
+            input = text.Trim();
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (busy || string.IsNullOrWhiteSpace(input))
+        {
+            return;
+        }
+
+        busy = true;
+        message = null;
+        results = [];
+        try
+        {
+            if (DownloadInput.IsLink(input))
+            {
+                await Notifications.EnsureAsync();
+            }
+
+            var result = await Requests.SubmitAsync(input);
+            results = result.Results;
+            messageIsError = result.Error is not null;
+            message = result.Error ?? (result.Queued > 0 ? $"Added {LibraryQuery.Pluralize(result.Queued, "song")} to the queue." : null);
+            if (result.Queued > 0)
+            {
+                input = "";
+            }
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task AddResultAsync(MediaInfo media)
+    {
+        await Notifications.EnsureAsync();
+        results = [.. results.Where(result => result.Id != media.Id)];
+        messageIsError = false;
+        message = await Queue.EnqueueAsync(media) ? $"Added {media.Title} to the queue." : "Already in the queue.";
+    }
+
+    private void ClearResults() => results = [];
+}

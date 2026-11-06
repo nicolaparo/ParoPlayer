@@ -34,6 +34,8 @@
   --color-fg: #eceef2;
   --color-mute: #8d95a5;
   --color-accent: var(--accent);
+  --color-accent-fg: #1a1204;
+  --color-bad: #ee6b6b;
 }
 
 @layer base {
@@ -52,6 +54,56 @@
       animation-duration: 0.01ms !important;
       transition-duration: 0.01ms !important;
     }
+  }
+}
+
+/* Motion: short ease-out transitions. The reduced-motion rule above shortens all of them. */
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes sheet-down {
+  from { transform: none; }
+  to { transform: translateY(100%); }
+}
+
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: none; }
+}
+
+/* backwards, not both: a lingering transform would make this wrapper the containing block of fixed sheets. */
+.page-enter { animation: page-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards; }
+.fade-enter { animation: fade-in 200ms ease-out both; }
+.fade-leave { animation: fade-out 180ms ease-in both; }
+.sheet-leave { animation: sheet-down 180ms ease-in both; }
+.sheet-enter { animation: sheet-up 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+@layer base {
+  /* Blazor focuses the page heading after navigation for screen readers; do not draw a ring around it. */
+  h1:focus {
+    outline: none;
+  }
+
+  button,
+  a {
+    transition: background-color 150ms ease, color 150ms ease, opacity 150ms ease, transform 120ms ease;
+  }
+
+  button:active,
+  a:active {
+    transform: scale(0.97);
   }
 }
 

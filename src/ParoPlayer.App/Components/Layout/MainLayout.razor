@@ -1,13 +1,21 @@
 @inherits LayoutComponentBase
 @inject ILibraryFolder LibraryFolder
+@inject NavigationManager Navigation
+@* PlayerState is created here so it listens to the player from app start. *@
+@inject PlayerState Player
 
 <div class="flex h-dvh flex-col bg-bg text-fg">
     <main class="min-h-0 flex-1 overflow-y-auto pt-safe">
-        @Body
+        <div @key="Navigation.Uri" class="page-enter">
+            @Body
+        </div>
     </main>
+    <MiniPlayer Hidden="@OnNowPlaying" />
     <BottomNav />
 </div>
 
 @code {
+    private bool OnNowPlaying => Navigation.ToBaseRelativePath(Navigation.Uri).StartsWith("now", StringComparison.OrdinalIgnoreCase);
+
     protected override async Task OnInitializedAsync() => await LibraryFolder.EnsureCreatedAsync();
 }

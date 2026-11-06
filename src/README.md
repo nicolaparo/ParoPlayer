@@ -4,8 +4,8 @@ Source code of ParoPlayer, an offline-first Android music player (.NET 11 MAUI B
 
 ## Projects
 
-- **`ParoPlayer.Core`** (net11.0, no MAUI or UI dependency): models (`Track`, `Playlist`, `SmartPlaylistDefinition`), `IRepository<T>` with SQLite and in-memory implementations, `SmartPlaylistEngine`, `LibraryService`, `PlaylistService`, `ILibraryFolder` (private `library` folder with `.nomedia`). Registered with `AddParoCore(dbPath)`.
-- **`ParoPlayer.App`** (MAUI Blazor Hybrid, `net11.0-android` and `net11.0-windows10.0.19041.0`): Razor components, Tailwind styles (`Styles/app.css` generates `wwwroot/css/app.css`), Font Awesome and fonts copied locally by `scripts/copy-vendor.mjs`, `Platforms/Android` for native services.
+- **`ParoPlayer.Core`** (net11.0, no MAUI or UI dependency): models (`Track`, `Playlist`, `SmartPlaylistDefinition`), `IRepository<T>` with SQLite and in-memory implementations, `SmartPlaylistEngine`, `LibraryService`, `PlaylistService`, `ILibraryFolder` (private `library` folder with `.nomedia`), `TrackImportService` + `ITrackMetadataReader` (TagLibSharp, file-name fallback), `LibraryQuery` (search, grouping, formatting), `SmartPlaylistDraft` (builder state), `Download/` (`DownloadQueue`, `DownloadPipeline`, `DownloadRequests`, YoutubeExplode source, ffmpeg converter, tag writer, see `../docs/download.md`). Registered with `AddParoCore(dbPath)`.
+- **`ParoPlayer.App`** (MAUI Blazor Hybrid, `net11.0-android` and `net11.0-windows10.0.19041.0`): Razor components, Tailwind styles (`Styles/app.css` generates `wwwroot/css/app.css`), Font Awesome and fonts copied locally by `scripts/copy-vendor.mjs`, `Platforms/Android` for native services. `Components/Pages` (Library, Playlists, PlaylistDetail, SmartPlaylistBuilder, Download, Settings), `Components/Shared` (SongRow, ArtTile, PageHeader, ToggleRow, ImportButton, DownloadRow), `Services` (PlayerState, AppSettings, IDiscogsTokenStore, IMusicImporter, DemoLibrary).
 
 Tests are in `../tests/ParoPlayer.Core.Tests` (xUnit, includes `CodingRulesTests`).
 

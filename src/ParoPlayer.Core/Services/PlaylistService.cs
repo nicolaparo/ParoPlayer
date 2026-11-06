@@ -24,6 +24,20 @@ public class PlaylistService(
         return playlist;
     }
 
+    public async Task DeleteAsync(Guid playlistId)
+    {
+        foreach (var entry in await GetEntriesAsync(playlistId))
+        {
+            await entries.DeleteAsync(entry.Id);
+        }
+
+        await playlists.DeleteAsync(playlistId);
+    }
+
+    public Task<IReadOnlyList<Playlist>> GetAllAsync() => playlists.GetAllAsync();
+
+    public Task<Playlist?> GetAsync(Guid playlistId) => playlists.GetAsync(playlistId);
+
     public async Task AddTrackAsync(Guid playlistId, Guid trackId)
     {
         var current = await GetEntriesAsync(playlistId);

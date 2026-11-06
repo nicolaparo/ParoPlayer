@@ -1,0 +1,24 @@
+<div class="flex min-h-14 items-center justify-between gap-3 border-b border-line py-2">
+    <div class="min-w-0">
+        <div>@Title</div>
+        <div class="text-xs text-mute">@Description</div>
+    </div>
+    <button type="button" role="switch" aria-checked="@(Value ? "true" : "false")" aria-label="@Title"
+            class="flex size-12 shrink-0 items-center justify-center" @onclick="Toggle">
+        <span class="@(Value ? "bg-accent" : "bg-line") relative block h-6 w-11 rounded-full transition-colors">
+            <span class="@(Value ? "translate-x-5" : "translate-x-0") absolute left-0.5 top-0.5 block size-5 rounded-full bg-white transition-transform"></span>
+        </span>
+    </button>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+
+    [Parameter] public string Description { get; set; } = "";
+
+    [Parameter] public bool Value { get; set; }
+
+    [Parameter] public EventCallback<bool> ValueChanged { get; set; }
+
+    private Task Toggle() => ValueChanged.InvokeAsync(!Value);
+}

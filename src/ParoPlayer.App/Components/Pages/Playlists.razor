@@ -1,6 +1,134 @@
 @page "/playlists"
+@inject PlaylistService Lists
+@inject NavigationManager Navigation
 
-<div class="p-4">
-    <h1 class="font-display text-2xl font-bold">Playlists</h1>
-    <p class="mt-2 text-sm text-mute">Coming soon.</p>
+<PageHeader Title="Playlists">
+    <button type="button" aria-label="New playlist" aria-expanded="@(creating ? "true" : "false")"
+            class="flex size-12 shrink-0 items-center justify-center rounded-full bg-accent text-accent-fg" @onclick="ToggleCreate">
+        <i class="fa-solid fa-plus" aria-hidden="true"></i>
+    </button>
+</PageHeader>
+
+<div class="flex gap-2 overflow-x-auto px-4 pb-2">
+    @foreach (var name in Filters)
+    {
+        <button type="button" aria-pressed="@(filter == name ? "true" : "false")"
+                class="@(filter == name ? "bg-accent text-accent-fg" : "bg-panel2 text-mute") flex min-h-12 shrink-0 items-center rounded-full px-4 font-medium"
+                @onclick="() => SelectFilter(name)">@name</button>
+    }
 </div>
+
+@if (Visible.Count == 0)
+{
+    <p class="px-4 pt-4 text-sm text-mute">No playlists here yet. Tap + to create a manual or smart playlist.</p>
+}
+
+@foreach (var item in Visible)
+{
+    <div @key="item.Playlist.Id" class="flex min-h-16 items-center">
+        <a href="playlists/@item.Playlist.Id" class="flex min-h-16 min-w-0 flex-1 items-center gap-3 pl-4">
+            <ArtTile Seed="@item.Playlist.Name" Smart="@item.Playlist.IsSmart" />
+            <span class="min-w-0 flex-1">
+                <span class="block truncate font-semibold">@item.Playlist.Name</span>
+                <span class="block truncate text-xs text-mute">@item.Subtitle</span>
+            </span>
+        </a>
+        <button type="button" aria-label="@($"More options for {item.Playlist.Name}")" class="flex size-12 shrink-0 items-center justify-center text-mute"
+                @onclick="() => menu = item.Playlist">
+            <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
+        </button>
+    </div>
+}
+
+@if (creating)
+{
+    <ActionSheet Title="New playlist" OnClose="ToggleCreate">
+        <label for="new-playlist-name" class="text-xs uppercase tracking-wider text-mute">Name</label>
+        <input id="new-playlist-name" type="text" class="mb-3 mt-1 min-h-12 w-full rounded-xl border border-line bg-panel2 px-3 text-fg"
+               @bind="newName" @bind:event="oninput" />
+        <div class="flex gap-2">
+            <button type="button" class="min-h-12 flex-1 rounded-xl bg-accent px-4 font-semibold text-accent-fg disabled:opacity-60"
+                    disabled="@string.IsNullOrWhiteSpace(newName)" @onclick="CreateManualAsync">Create playlist</button>
+            <a href="playlists/smart" class="flex min-h-12 flex-1 items-center justify-center rounded-xl bg-panel2 px-4 font-semibold">Smart playlist</a>
+        </div>
+    </ActionSheet>
+}
+
+@if (menu is not null && confirming)
+{
+    <ConfirmSheet Title="@($"Delete {menu.Name}?")" Message="The playlist is removed. Your songs stay in the library."
+                  ConfirmLabel="Delete playlist" OnConfirm="DeleteAsync" OnCancel="CloseMenu" />
+}
+else if (menu is not null)
+{
+    <ActionSheet Title="@menu.Name" OnClose="CloseMenu">
+        <button type="button" class="flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-red-400" @onclick="() => confirming = true">
+            <i class="fa-solid fa-trash w-5 text-center" aria-hidden="true"></i>Delete playlist
+        </button>
+    </ActionSheet>
+}
+
+@code {
+    private static readonly string[] Filters = ["All", "Manual", "Smart"];
+
+    private record Item(Playlist Playlist, string Subtitle);
+
+    private List<Item> items = [];
+    private string filter = "All";
+    private bool creating;
+    private string newName = "";
+
+    private List<Item> Visible => filter switch
+    {
+        "Manual" => [.. items.Where(item => !item.Playlist.IsSmart)],
+        "Smart" => [.. items.Where(item => item.Playlist.IsSmart)],
+        _ => items,
+    };
+
+    private Playlist? menu;
+    private bool confirming;
+
+    protected override Task OnInitializedAsync() => ReloadAsync();
+
+    private void CloseMenu()
+    {
+        menu = null;
+        confirming = false;
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (menu is { } playlist)
+        {
+            await Lists.DeleteAsync(playlist.Id);
+        }
+
+        CloseMenu();
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        var list = new List<Item>();
+        foreach (var playlist in (await Lists.GetAllAsync()).OrderBy(playlist => playlist.Name, StringComparer.OrdinalIgnoreCase))
+        {
+            var count = (await Lists.GetTracksAsync(playlist.Id)).Count;
+            var kind = playlist.IsSmart && playlist.SmartDefinition is { } json
+                ? $"Smart · {SmartPlaylistDraft.Describe(SmartPlaylistDefinition.FromJson(json))}"
+                : "Manual";
+            list.Add(new Item(playlist, $"{kind} · {LibraryQuery.Pluralize(count, "song")}"));
+        }
+
+        items = list;
+    }
+
+    private void SelectFilter(string name) => filter = name;
+
+    private void ToggleCreate() => creating = !creating;
+
+    private async Task CreateManualAsync()
+    {
+        var playlist = await Lists.CreateManualAsync(newName.Trim());
+        Navigation.NavigateTo($"playlists/{playlist.Id}");
+    }
+}
