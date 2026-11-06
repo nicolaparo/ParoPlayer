@@ -87,6 +87,25 @@ public sealed class SilentPlayerService : IPlayerService, IAsyncDisposable
 
     public Task SetRepeatAsync(RepeatMode repeat, CancellationToken cancellationToken = default) => ChangeAsync(() => queue?.SetRepeat(repeat), cancellationToken);
 
+    public Task RemoveTracksAsync(IReadOnlyCollection<Guid> trackIds, CancellationToken cancellationToken = default) => ChangeAsync(() =>
+    {
+        if (queue is null)
+        {
+            return;
+        }
+
+        var removal = queue.Remove(trackIds);
+        if (removal.IsEmpty)
+        {
+            queue = null;
+            Restart(playing: false);
+        }
+        else if (removal.CurrentRemoved)
+        {
+            Restart(playing: playingSince is not null && !removal.RanOut);
+        }
+    }, cancellationToken);
+
     public Task<PlayerSnapshot> GetSnapshotAsync(CancellationToken cancellationToken = default) => ReadAsync(cancellationToken);
 
     public IDisposable Subscribe(Func<PlayerSnapshot, Task> onChanged) => broadcaster.Subscribe(onChanged);

@@ -27,6 +27,12 @@ public interface IPlayerService
 
     Task SetRepeatAsync(RepeatMode repeat, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Drops deleted tracks from the queue. If the playing track is among them, playback moves on to the next one,
+    /// or stops when none is left. Call it before the files are deleted.
+    /// </summary>
+    Task RemoveTracksAsync(IReadOnlyCollection<Guid> trackIds, CancellationToken cancellationToken = default);
+
     /// <summary>Reads the current state.</summary>
     Task<PlayerSnapshot> GetSnapshotAsync(CancellationToken cancellationToken = default);
 

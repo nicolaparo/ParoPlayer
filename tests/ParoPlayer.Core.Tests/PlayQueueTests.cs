@@ -184,4 +184,71 @@ public class PlayQueueTests
         Assert.Equal("Song 5", queue.Current.Title);
         Assert.Throws<ArgumentOutOfRangeException>(() => queue.MoveTo(5));
     }
+
+    private static Guid[] Ids(PlayQueue queue, params int[] positions) => [.. positions.Select(i => queue.Order[i].Id)];
+
+    [Fact]
+    public void RemovingTracksBeforeTheCurrentOneKeepsTheCurrentTrack()
+    {
+        var queue = Queue(5, start: 3);
+
+        var removal = queue.Remove(Ids(queue, 0, 1));
+
+        Assert.False(removal.CurrentRemoved);
+        Assert.Equal("Song 4", queue.Current.Title);
+        Assert.Equal(1, queue.Position);
+        Assert.Equal(3, queue.Original.Count);
+    }
+
+    [Fact]
+    public void RemovingTheCurrentTrackMovesToTheNextOne()
+    {
+        var queue = Queue(4, start: 1);
+
+        var removal = queue.Remove(Ids(queue, 1));
+
+        Assert.True(removal.CurrentRemoved);
+        Assert.False(removal.RanOut);
+        Assert.Equal("Song 3", queue.Current.Title);
+        Assert.Equal(1, queue.Position);
+    }
+
+    [Fact]
+    public void RemovingTheLastCurrentTrackRunsOutUnlessRepeatAll()
+    {
+        var queue = Queue(3, start: 2);
+        Assert.True(queue.Remove(Ids(queue, 2)).RanOut);
+        Assert.Equal("Song 2", queue.Current.Title);
+
+        var repeating = Queue(3, start: 2);
+        repeating.SetRepeat(RepeatMode.All);
+        Assert.False(repeating.Remove(Ids(repeating, 2)).RanOut);
+        Assert.Equal("Song 1", repeating.Current.Title);
+    }
+
+    [Fact]
+    public void RemovingEveryTrackEmptiesTheQueue()
+    {
+        var queue = Queue(2);
+
+        var removal = queue.Remove(Ids(queue, 0, 1));
+
+        Assert.True(removal.IsEmpty);
+        Assert.Empty(queue.Order);
+    }
+
+    [Fact]
+    public void RemovalKeepsShuffleOrderAndReportsOldIndices()
+    {
+        var queue = Queue(6, start: 2);
+        queue.SetShuffle(true);
+        var victim = queue.Order[3].Id;
+        var current = queue.Current;
+
+        var removal = queue.Remove([victim]);
+
+        Assert.Equal([3], removal.Indices);
+        Assert.Same(current, queue.Current);
+        Assert.DoesNotContain(queue.Original, track => track.Id == victim);
+    }
 }
