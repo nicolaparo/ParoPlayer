@@ -7,10 +7,12 @@
 @inject IHapticFeedback Haptics
 @implements IDisposable
 @using ParoPlayer.Core.Import
+@using ParoPlayer.Core.Harmony
 @inject TimeProvider Time
 @inject CoverBackfillService CoverBackfill
 @inject AppSettings Prefs
 @inject WaveformBackfillService WaveformBackfill
+@inject KeyBackfillService KeyBackfill
 @inject LibraryViewState ViewState
 @inject IJSRuntime JS
 
@@ -219,6 +221,7 @@ else
         }
 
         WaveformBackfill.Start();
+        KeyBackfill.Start();
     }
 
     // The scroll offset is put back only once the lists have been built, or there is nothing tall enough to scroll.

@@ -34,4 +34,7 @@ public class Track : IEntity
 
     /// <summary>Square cover image inside the library folder, or empty when the track has none.</summary>
     public string CoverPath { get; set; } = "";
+
+    /// <summary>Detected musical key such as "C#m", or null until the track has been analysed.</summary>
+    public string? Key { get; set; }
 }

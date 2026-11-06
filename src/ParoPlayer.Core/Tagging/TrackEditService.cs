@@ -95,5 +95,6 @@ public class TrackEditService(IRepository<Track> tracks, DeferredTagWriter tagWr
         LastPlayedAt = t.LastPlayedAt,
         TrackNumber = t.TrackNumber,
         CoverPath = t.CoverPath,
+        Key = t.Key,
     };
 }

@@ -6,6 +6,7 @@ using ParoPlayer.Core.Engine;
 using ParoPlayer.Core.Import;
 using ParoPlayer.Core.Services;
 using ParoPlayer.Core.Bpm;
+using ParoPlayer.Core.Harmony;
 using ParoPlayer.Core.Tagging;
 using ParoPlayer.Core.Transfer;
 using SQLite;
@@ -33,6 +34,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IBpmTag, TagLibBpmTag>();
         services.AddSingleton<BpmDetectionService>();
         services.AddSingleton<TrackBpmService>();
+        services.AddSingleton<KeyDetectionService>();
+        services.AddSingleton<TrackKeyService>();
+        services.AddSingleton<KeyBackfillService>();
         services.AddSingleton<DeferredTagWriter>();
         services.AddSingleton<CoverBackfillService>();
         services.AddSingleton<WaveformBackfillService>();

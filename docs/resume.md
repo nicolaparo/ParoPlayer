@@ -21,6 +21,7 @@ Read this first when resuming. Then `CLAUDE.md`, `docs/action-plan.md`.
 - ffmpeg wanted: prebuilt arm64 CLI (hzw1199/Android-FFmpeg-Prebuilt) as `libffmpeg.so`, no MP3. Verify checksum and test on device.
 - Font Awesome Free icons; no tables anywhere; Wi-Fi transfer feature with approval flow.
 - No skills installed via `maui ai` / `devflow`; skills are hand-written (`maui-cli`, `adb`).
+- Musical key: `Core/Harmony` (`KeyEstimator`: FFT chroma + Krumhansl-Schmuckler, 24 keys, sharps naming). Stored in the nullable `Track.Key` column (sqlite-net adds the column on next start). `TrackKeyService` detects on Now Playing; `KeyBackfillService` fills missing keys in the background from the Library page. Key is never written to the audio file. BPM and key decode the audio separately (shared `PcmAudioLoader`).
 
 ## Next steps
 1. Check `git status`, build (`dotnet build src/ParoPlayer.App -f net11.0-android ...` see adb skill) and tests.

@@ -5,6 +5,8 @@
 @using ParoPlayer.Core.Bpm
 @inject WaveformStore Waveforms
 @inject TrackBpmService Bpm
+@using ParoPlayer.Core.Harmony
+@inject TrackKeyService Keys
 @implements IDisposable
 
 <PageHeader Title="Now playing" BackHref="." />
@@ -25,7 +27,7 @@ else
         <div class="min-w-0">
             <h2 class="truncate font-display text-2xl font-bold">@track.Title</h2>
             <p class="truncate text-mute">@LibraryQuery.Subtitle(track)</p>
-            <div class="mt-1 flex h-5 items-center">
+            <div class="mt-1 flex h-5 items-center gap-3">
                 @if (bpmLoading)
                 {
                     <span class="h-3 w-16 animate-pulse rounded-full bg-line" aria-label="Detecting BPM"></span>
@@ -33,6 +35,14 @@ else
                 else if (bpm is { } tempo)
                 {
                     <span class="text-xs font-semibold tabular-nums text-mute">@tempo BPM</span>
+                }
+                @if (keyLoading)
+                {
+                    <span class="h-3 w-10 animate-pulse rounded-full bg-line" aria-label="Detecting key"></span>
+                }
+                else if (key is not null)
+                {
+                    <span class="text-xs font-semibold text-mute">@key</span>
                 }
             </div>
         </div>
@@ -80,6 +90,8 @@ else
     private bool peaksLoading;
     private int? bpm;
     private bool bpmLoading;
+    private string? key;
+    private bool keyLoading;
     private Guid peaksTrackId;
     private CancellationTokenSource? peaksLoad;
 
@@ -105,11 +117,39 @@ else
         peaksLoading = true;
         bpm = null;
         bpmLoading = true;
+        key = track.Key;
+        keyLoading = track.Key is null;
         peaksLoad?.Cancel();
         peaksLoad?.Dispose();
         var load = peaksLoad = new CancellationTokenSource();
         StateHasChanged();
-        await Task.WhenAll(LoadPeaksAsync(track, load.Token), LoadBpmAsync(track, load.Token));
+        await Task.WhenAll(LoadPeaksAsync(track, load.Token), LoadBpmAsync(track, load.Token), LoadKeyAsync(track, load.Token));
+    }
+
+    private async Task LoadKeyAsync(Track track, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await Keys.GetAsync(track, cancellationToken);
+            if (peaksTrackId == track.Id)
+            {
+                key = result;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // No key for this file.
+        }
+
+        if (peaksTrackId == track.Id)
+        {
+            keyLoading = false;
+            StateHasChanged();
+        }
     }
 
     private async Task LoadPeaksAsync(Track track, CancellationToken cancellationToken)

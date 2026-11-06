@@ -65,18 +65,7 @@ public class BpmDetectionService(IPcmDecoder decoder, IBpmTag tag)
             }
         }
 
-        // Decode a throwaway copy so analysis never touches the file the player is reading.
-        var copy = Path.Combine(Path.GetTempPath(), $"paroplayer-bpm-{Guid.NewGuid():N}{Path.GetExtension(filePath)}");
-        PcmAudio? audio;
-        try
-        {
-            File.Copy(filePath, copy);
-            audio = await decoder.DecodeAsync(copy, AnalysisSeconds, cancellationToken);
-        }
-        finally
-        {
-            File.Delete(copy);
-        }
+        var audio = await PcmAudioLoader.LoadAsync(decoder, filePath, AnalysisSeconds, cancellationToken);
 
         if (audio is null)
         {
