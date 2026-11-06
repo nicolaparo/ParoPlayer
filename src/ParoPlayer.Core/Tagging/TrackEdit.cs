@@ -9,6 +9,20 @@ public record TrackEdit(string Title, string Artist, string Album, string Genre,
         new(track.Title, track.Artist, track.Album, track.Genre, track.Year, track.TrackNumber);
 }
 
+/// <summary>Fields to set on many songs at once. A null field is left as each song has it.</summary>
+public record BulkTrackEdit(string? Artist = null, string? Album = null, string? Genre = null, int? Year = null)
+{
+    public bool IsEmpty => Artist is null && Album is null && Genre is null && Year is null;
+
+    public TrackEdit ApplyTo(TrackEdit edit) => edit with
+    {
+        Artist = Artist ?? edit.Artist,
+        Album = Album ?? edit.Album,
+        Genre = Genre ?? edit.Genre,
+        Year = Year ?? edit.Year,
+    };
+}
+
 public record FieldChange(string Field, string Before, string After);
 
 public static class TrackEditDiff

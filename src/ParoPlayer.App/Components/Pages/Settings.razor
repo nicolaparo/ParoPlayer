@@ -27,11 +27,9 @@
         <div class="mt-1 break-all text-xs text-mute">Library folder: @LibraryFolder.Path</div>
     </div>
 
-    <ImportButton OnImported="LoadStorageAsync" />
-
-    @if (IsDebug)
+    @if (IsDebug && songCount == 0)
     {
-        <button type="button" class="mt-2 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-panel2 font-semibold" @onclick="LoadDemoAsync">
+        <button type="button" class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-panel2 font-semibold" @onclick="LoadDemoAsync">
             <i class="fa-solid fa-flask" aria-hidden="true"></i>Load demo songs
         </button>
     }

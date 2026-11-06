@@ -1,4 +1,5 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
+using ParoPlayer.Core.Navigation;
 #if DEBUG
 using Microsoft.Maui.DevFlow.Agent;
 using Microsoft.Maui.DevFlow.Blazor;
@@ -58,6 +59,7 @@ public static class MauiProgram
 #endif
         builder.Services.AddSingleton<CoverImages>();
         builder.Services.AddSingleton<LibraryViewState>();
+        builder.Services.AddSingleton<BackStack>();
         builder.Services.AddSingleton<PlayerState>();
         builder.Services.AddSingleton<DemoLibrary>();
 

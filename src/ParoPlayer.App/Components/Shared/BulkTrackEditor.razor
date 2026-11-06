@@ -1,0 +1,51 @@
+@using ParoPlayer.Core.Tagging
+
+@if (Count > 0)
+{
+    <ActionSheet Title="@($"Edit {LibraryQuery.Pluralize(Count, "song")}")" Tall="true" OnClose="OnClosed">
+        <ChildContent>
+            <p class="pb-2 text-sm text-mute">Fill in only what should change. Empty fields stay as each song has them.</p>
+            <label for="bulk-artist" class="text-xs uppercase tracking-wider text-mute">Artist</label>
+            <input id="bulk-artist" class="mb-2 mt-1 min-h-12 w-full rounded-xl border border-line bg-panel2 px-3 text-fg" placeholder="Keep" @bind="artist" @bind:event="oninput" />
+            <label for="bulk-album" class="text-xs uppercase tracking-wider text-mute">Album</label>
+            <input id="bulk-album" class="mb-2 mt-1 min-h-12 w-full rounded-xl border border-line bg-panel2 px-3 text-fg" placeholder="Keep" @bind="album" @bind:event="oninput" />
+            <label for="bulk-genre" class="text-xs uppercase tracking-wider text-mute">Genre</label>
+            <input id="bulk-genre" class="mb-2 mt-1 min-h-12 w-full rounded-xl border border-line bg-panel2 px-3 text-fg" placeholder="Keep" @bind="genre" @bind:event="oninput" />
+            <label for="bulk-year" class="text-xs uppercase tracking-wider text-mute">Year</label>
+            <input id="bulk-year" type="number" inputmode="numeric" min="0" max="9999" class="mb-2 mt-1 min-h-12 w-full rounded-xl border border-line bg-panel2 px-3 text-fg" placeholder="Keep" @bind="year" @bind:event="oninput" />
+        </ChildContent>
+        <Footer Context="close">
+            <div class="flex shrink-0 gap-2 py-2">
+                <button type="button" class="min-h-12 flex-1 rounded-xl bg-accent px-4 font-semibold text-accent-fg disabled:opacity-60"
+                        disabled="@(Draft.IsEmpty)" @onclick="() => ApplyAsync(close)">Apply to @Count</button>
+                <button type="button" class="min-h-12 flex-1 rounded-xl bg-panel2 px-4 font-semibold" @onclick="close">Cancel</button>
+            </div>
+        </Footer>
+    </ActionSheet>
+}
+
+@code {
+    /// <summary>How many songs are being edited; zero hides the sheet.</summary>
+    [Parameter] public int Count { get; set; }
+
+    /// <summary>Raised when the user applies the edit. The page saves it and offers undo.</summary>
+    [Parameter] public EventCallback<BulkTrackEdit> OnApply { get; set; }
+
+    [Parameter] public EventCallback OnClosed { get; set; }
+
+    private string artist = "";
+    private string album = "";
+    private string genre = "";
+    private int? year;
+
+    private BulkTrackEdit Draft => new(Field(artist), Field(album), Field(genre), year is > 0 ? year : null);
+
+    private static string? Field(string value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private async Task ApplyAsync(EventCallback close)
+    {
+        await OnApply.InvokeAsync(Draft);
+        (artist, album, genre, year) = ("", "", "", null);
+        await close.InvokeAsync();
+    }
+}

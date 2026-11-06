@@ -1,18 +1,23 @@
-﻿namespace ParoPlayer.App;
+﻿using ParoPlayer.Core.Navigation;
+
+namespace ParoPlayer.App;
 
 public partial class App : Application
 {
     private const double DesktopWindowWidth = 420;
     private const double DesktopWindowHeight = 860;
 
-    public App()
+    private readonly BackStack backStack;
+
+    public App(BackStack backStack)
     {
+        this.backStack = backStack;
         InitializeComponent();
     }
 
     protected override Window CreateWindow(IActivationState? activationState)
     {
-        var window = new Window(new MainPage()) { Title = "ParoPlayer" };
+        var window = new Window(new MainPage(backStack)) { Title = "ParoPlayer" };
 
 #if WINDOWS
         // Phone-shaped window so the desktop build previews the mobile layout.

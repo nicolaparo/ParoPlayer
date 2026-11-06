@@ -77,6 +77,67 @@ public sealed class TrackEditTests : IDisposable
     }
 
     [Fact]
+    public async Task ApplyBulk_ChangesOnlyTheGivenFieldsOnEverySong()
+    {
+        var first = await AddTrackAsync();
+        var second = await AddTrackAsync();
+        second.Title = "Other";
+        second.Album = "Kept";
+        await repository.UpdateAsync(second);
+
+        var results = await service.ApplyBulkAsync([first.Id, second.Id], new BulkTrackEdit(Genre: "Techno", Year: 2024));
+
+        Assert.Equal(2, results.Count);
+        foreach (var id in new[] { first.Id, second.Id })
+        {
+            var saved = await repository.GetAsync(id);
+            Assert.Equal(("Techno", 2024, "Someone"), (saved!.Genre, saved.Year, saved.Artist));
+        }
+
+        Assert.Equal("Other", (await repository.GetAsync(second.Id))!.Title);
+        Assert.Equal("Kept", (await repository.GetAsync(second.Id))!.Album);
+        Assert.Equal("Techno", writer.Tags!.Genre);
+    }
+
+    [Fact]
+    public async Task ApplyBulk_WithNothingToChange_TouchesNothing()
+    {
+        var track = await AddTrackAsync();
+
+        var results = await service.ApplyBulkAsync([track.Id], new BulkTrackEdit());
+
+        Assert.Empty(results);
+        Assert.Null(writer.Tags);
+    }
+
+    [Fact]
+    public async Task ApplyBulk_SkipsMissingSongs()
+    {
+        var track = await AddTrackAsync();
+
+        var results = await service.ApplyBulkAsync([Guid.NewGuid(), track.Id], new BulkTrackEdit(Artist: "New"));
+
+        Assert.Single(results);
+    }
+
+    [Fact]
+    public async Task UndoBulk_RestoresEverySong()
+    {
+        var first = await AddTrackAsync();
+        var second = await AddTrackAsync();
+        var results = await service.ApplyBulkAsync([first.Id, second.Id], new BulkTrackEdit(Artist: "Changed", Year: 2000));
+
+        var error = await service.UndoBulkAsync(results.Select(result => result.Snapshot));
+
+        Assert.Null(error);
+        foreach (var id in new[] { first.Id, second.Id })
+        {
+            var saved = await repository.GetAsync(id);
+            Assert.Equal(("Someone", 1999), (saved!.Artist, saved.Year));
+        }
+    }
+
+    [Fact]
     public async Task Undo_RestoresFieldsAndOldCover()
     {
         Directory.CreateDirectory(folder.Path);

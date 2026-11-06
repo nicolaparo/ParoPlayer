@@ -15,6 +15,9 @@
 @inject KeyBackfillService KeyBackfill
 @inject LibraryViewState ViewState
 @inject IJSRuntime JS
+@inject BackStack Back
+@inject TrackEditService Editor
+@using ParoPlayer.Core.Tagging
 
 <PageHeader Title="What's the mood?" Eyebrow="@Greeting.For(Time.GetLocalNow())">
     <a href="settings" aria-label="Settings" class="flex size-12 shrink-0 items-center justify-center rounded-full bg-panel2">
@@ -41,8 +44,7 @@
 {
     <div class="mx-4 mt-4 rounded-2xl bg-panel2 p-4">
         <p class="font-semibold">Your library is empty</p>
-        <p class="mb-4 mt-1 text-sm text-mute">Import audio files from this device. They are copied into the app and work offline.</p>
-        <ImportButton OnImported="ReloadAsync" />
+        <p class="mt-1 text-sm text-mute">Download songs or send them from a computer with Wi-Fi transfer in Settings.</p>
     </div>
 }
 else
@@ -73,6 +75,9 @@ else
         {
             <div class="sheet-enter sticky bottom-0 z-20 flex items-center gap-2 rounded-t-2xl border-t border-line bg-panel2 px-4" role="toolbar" aria-label="Selection">
                 <span class="min-w-0 flex-1 truncate font-semibold">@selection.Count selected</span>
+                <button type="button" aria-label="Edit selected" class="flex size-12 items-center justify-center" @onclick="StartBulkEdit">
+                    <i class="fa-solid fa-pen" aria-hidden="true"></i>
+                </button>
                 <button type="button" aria-label="Share selected" class="flex size-12 items-center justify-center" @onclick="() => ShareAsync(SelectedTracks())">
                     <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
                 </button>
@@ -132,6 +137,13 @@ else
     <Toast @key="message" Message="@message" OnDismissed="DismissMessage" />
 }
 
+@if (bulkUndo is not null)
+{
+    <Toast @key="bulkUndo" Message="@BulkUndoMessage(bulkUndo)" ActionLabel="Undo" OnAction="UndoBulkAsync" OnDismissed="DismissBulkUndo" />
+}
+
+<BulkTrackEditor Count="@bulkCount" OnApply="ApplyBulkAsync" OnClosed="CloseBulkEdit" />
+
 @if (menuTrack is not null)
 {
     <ActionSheet Title="@menuTrack.Title" OnClose="CloseMenu">
@@ -172,6 +184,9 @@ else
     private Track? editing;
     private List<Track>? deleting;
     private string? message;
+    private int bulkCount;
+    private string? bulkTagError;
+    private IReadOnlyList<TrackEditResult>? bulkUndo;
 
     private void DismissMessage() => message = null;
 
@@ -255,9 +270,32 @@ else
 
     private IDisposable? playerSubscription;
 
-    protected override void OnInitialized() => playerSubscription = Player.Subscribe(() => InvokeAsync(StateHasChanged));
+    private IDisposable? backLayer;
 
-    public void Dispose() => playerSubscription?.Dispose();
+    protected override void OnInitialized()
+    {
+        playerSubscription = Player.Subscribe(() => InvokeAsync(StateHasChanged));
+    }
+
+    // Back clears the selection, so its layer exists only while something is selected.
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (selection.Count > 0 && backLayer is null)
+        {
+            backLayer = Back.Register(() => InvokeAsync(ClearSelection));
+        }
+        else if (selection.Count == 0 && backLayer is not null)
+        {
+            backLayer.Dispose();
+            backLayer = null;
+        }
+    }
+
+    public void Dispose()
+    {
+        playerSubscription?.Dispose();
+        backLayer?.Dispose();
+    }
 
     private Task TapAsync(Track track)
     {
@@ -306,6 +344,36 @@ else
     }
 
     private void ClearSelection() => selection.Clear();
+
+    private void StartBulkEdit() => bulkCount = selection.Count;
+
+    private void CloseBulkEdit() => bulkCount = 0;
+
+    private async Task ApplyBulkAsync(BulkTrackEdit edit)
+    {
+        var results = await Editor.ApplyBulkAsync(selection.ToList(), edit);
+        bulkUndo = results;
+        bulkTagError = results.Select(result => result.TagError).FirstOrDefault(error => error is not null);
+        selection.Clear();
+        await ReloadAsync();
+    }
+
+    private async Task UndoBulkAsync()
+    {
+        if (bulkUndo is not { } results)
+        {
+            return;
+        }
+
+        bulkUndo = null;
+        await Editor.UndoBulkAsync(results.Select(result => result.Snapshot));
+        await ReloadAsync();
+    }
+
+    private string BulkUndoMessage(IReadOnlyList<TrackEditResult> results) =>
+        $"Updated {LibraryQuery.Pluralize(results.Count, "song")}" + (bulkTagError is null ? "" : $", but some file tags could not be written: {bulkTagError}");
+
+    private void DismissBulkUndo() => bulkUndo = null;
 
     private List<Track> SelectedTracks() => [.. all.Where(track => selection.Contains(track.Id))];
 

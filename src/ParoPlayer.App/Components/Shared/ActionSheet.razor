@@ -1,3 +1,6 @@
+@implements IDisposable
+@inject BackStack Back
+
 <div class="@(closing ? "fade-leave" : "fade-enter") fixed inset-0 z-40 flex flex-col justify-end bg-black/60" @onclick="CloseAsync">
     <div role="dialog" aria-modal="true" aria-label="@Title"
          class="@(closing ? "sheet-leave" : "sheet-enter") @(Tall ? "h-[80dvh]" : "max-h-[85dvh]") flex flex-col rounded-t-3xl bg-panel px-4 pb-safe"
@@ -24,6 +27,7 @@
     private const int LeaveMilliseconds = 180;
 
     private bool closing;
+    private IDisposable? backLayer;
 
     [Parameter, EditorRequired] public string Title { get; set; } = "";
 
@@ -38,6 +42,10 @@
     /// <summary>Replaces the default Cancel row. Receives the callback that closes the sheet with its leave animation.</summary>
     [Parameter] public RenderFragment<EventCallback>? Footer { get; set; }
 
+    protected override void OnInitialized() => backLayer = Back.Register(() => InvokeAsync(CloseAsync));
+
+    public void Dispose() => backLayer?.Dispose();
+
     private EventCallback CloseCallback => EventCallback.Factory.Create(this, CloseAsync);
 
     private async Task CloseAsync()
@@ -48,6 +56,7 @@
         }
 
         closing = true;
+        backLayer?.Dispose();
         StateHasChanged();
         await Task.Delay(LeaveMilliseconds);
         await OnClose.InvokeAsync();

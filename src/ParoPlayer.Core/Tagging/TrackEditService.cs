@@ -47,6 +47,39 @@ public class TrackEditService(IRepository<Track> tracks, DeferredTagWriter tagWr
         return new TrackEditResult(track, snapshot, tagError);
     }
 
+    /// <summary>Sets the given fields on every listed song and keeps the rest as they are. Returns one result per song found, for undo.</summary>
+    public async Task<IReadOnlyList<TrackEditResult>> ApplyBulkAsync(IEnumerable<Guid> trackIds, BulkTrackEdit edit, CancellationToken cancellationToken = default)
+    {
+        List<TrackEditResult> results = [];
+        if (edit.IsEmpty)
+        {
+            return results;
+        }
+
+        foreach (var id in trackIds)
+        {
+            if (await tracks.GetAsync(id) is { } track
+                && await ApplyAsync(id, edit.ApplyTo(TrackEdit.From(track)), null, cancellationToken) is { } result)
+            {
+                results.Add(result);
+            }
+        }
+
+        return results;
+    }
+
+    /// <summary>Undoes a bulk edit. Returns the first tag error, if any.</summary>
+    public async Task<string?> UndoBulkAsync(IEnumerable<TrackEditSnapshot> snapshots, CancellationToken cancellationToken = default)
+    {
+        string? firstError = null;
+        foreach (var snapshot in snapshots)
+        {
+            firstError ??= await UndoAsync(snapshot, cancellationToken);
+        }
+
+        return firstError;
+    }
+
     /// <summary>Puts the track, its cover file and its file tags back as they were. Returns a tag error, if any.</summary>
     public async Task<string?> UndoAsync(TrackEditSnapshot snapshot, CancellationToken cancellationToken = default)
     {
