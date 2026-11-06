@@ -29,9 +29,12 @@ public sealed class WaveformStoreTests : IDisposable
     {
         public int Calls { get; private set; }
 
+        public string? AnalyzedPath { get; private set; }
+
         public Task<float[]?> AnalyzeAsync(string filePath, int bars, CancellationToken cancellationToken = default)
         {
             Calls++;
+            AnalyzedPath = filePath;
             return Task.FromResult(result);
         }
     }
@@ -51,6 +54,19 @@ public sealed class WaveformStoreTests : IDisposable
         Assert.Equal(Peaks(), first);
         Assert.Equal(Peaks(), second);
         Assert.Equal(1, analyzer.Calls);
+    }
+
+    [Fact]
+    public async Task Get_AnalysesATemporaryCopyAndDeletesIt()
+    {
+        var analyzer = new FakeAnalyzer(Peaks());
+        var store = new WaveformStore(folder, analyzer);
+
+        await store.GetAsync(Guid.NewGuid(), audio);
+
+        Assert.NotEqual(audio, analyzer.AnalyzedPath);
+        Assert.False(File.Exists(analyzer.AnalyzedPath));
+        Assert.True(File.Exists(audio));
     }
 
     [Fact]

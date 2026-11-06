@@ -59,7 +59,19 @@ public class WaveformStore(ILibraryFolder folder, IWaveformAnalyzer analyzer)
             return null;
         }
 
-        var peaks = await analyzer.AnalyzeAsync(audioPath, Bars, cancellationToken);
+        // Analyse a throwaway copy so decoding never touches the file the player is reading.
+        var copy = Path.Combine(Path.GetTempPath(), $"paroplayer-waveform-{Guid.NewGuid():N}{Path.GetExtension(audioPath)}");
+        float[]? peaks;
+        try
+        {
+            File.Copy(audioPath, copy);
+            peaks = await analyzer.AnalyzeAsync(copy, Bars, cancellationToken);
+        }
+        finally
+        {
+            File.Delete(copy);
+        }
+
         if (peaks is not { Length: Bars })
         {
             return null;

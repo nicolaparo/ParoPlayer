@@ -1,24 +1,18 @@
-<div class="@(Peaks is null ? "animate-pulse" : "") pointer-events-none flex size-full items-center gap-px" aria-hidden="true">
-    @if (Peaks is null)
-    {
-        for (var i = 0; i < Placeholder; i++)
-        {
-            <span class="h-1 flex-1 rounded-full bg-line"></span>
-        }
+<div class="pointer-events-none flex size-full items-center gap-px" aria-hidden="true">
+    @{
+        var bars = Peaks ?? Flat;
+        var played = (int)Math.Round(Math.Clamp(Progress, 0, 1) * bars.Length);
     }
-    else
+    @for (var i = 0; i < bars.Length; i++)
     {
-        var played = (int)Math.Round(Math.Clamp(Progress, 0, 1) * Peaks.Length);
-        for (var i = 0; i < Peaks.Length; i++)
-        {
-            var height = (int)Math.Round(8 + Math.Clamp(Peaks[i], 0f, 1f) * 92);
-            <span class="@(i < played ? "bg-accent" : "bg-line") flex-1 rounded-full" style="height:@(height)%"></span>
-        }
+        var height = (int)Math.Round(8 + Math.Clamp(bars[i], 0f, 1f) * 92);
+        <span class="@(i < played ? "bg-accent" : "bg-line") flex-1 rounded-full" style="height:@(height)%"></span>
     }
 </div>
 
 @code {
-    private const int Placeholder = 60;
+    /// <summary>Shown at half height while the real levels are being computed, so the track can still be seeked.</summary>
+    private static readonly float[] Flat = [.. Enumerable.Repeat(0.5f, 150)];
 
     /// <summary>Bar heights between 0 and 1. Null while they are being computed or when they cannot be.</summary>
     [Parameter] public float[]? Peaks { get; set; }
