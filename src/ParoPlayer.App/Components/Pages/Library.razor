@@ -10,6 +10,7 @@
 @using ParoPlayer.Core.Import
 @inject TimeProvider Time
 @inject CoverBackfillService CoverBackfill
+@inject WaveformBackfillService WaveformBackfill
 
 <PageHeader Title="What's the mood?" Eyebrow="@Greeting.For(Time.GetLocalNow())">
     <a href="settings" aria-label="Settings" class="flex size-12 shrink-0 items-center justify-center rounded-full bg-panel2">
@@ -187,6 +188,8 @@ else
         {
             await ReloadAsync();
         }
+
+        WaveformBackfill.Start();
     }
 
     private async Task ReloadAsync()

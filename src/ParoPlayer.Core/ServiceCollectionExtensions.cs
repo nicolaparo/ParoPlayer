@@ -29,6 +29,7 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IWaveformAnalyzer, NoWaveformAnalyzer>();
         services.AddSingleton<WaveformStore>();
         services.AddSingleton<CoverBackfillService>();
+        services.AddSingleton<WaveformBackfillService>();
         services.AddSingleton<TrackImportService>();
         services.AddSingleton<TrackEditService>();
         services.AddSingleton<IHttpFetcher, HttpClientFetcher>();
