@@ -6,6 +6,16 @@ namespace ParoPlayer.Core.Library;
 /// <summary>A row of the Albums, Artists, Genres or Folders tab.</summary>
 public record LibraryGroup(string Name, string Subtitle, int Count);
 
+/// <summary>What the Songs list can be ordered by.</summary>
+public enum SongSortKey
+{
+    Title,
+    Artist,
+    Album,
+    DateAdded,
+    Duration,
+}
+
 /// <summary>Pure helpers behind the Library screen: search, grouping and display formatting.</summary>
 public static class LibraryQuery
 {
@@ -22,6 +32,21 @@ public static class LibraryQuery
             track.Title.Contains(query, StringComparison.OrdinalIgnoreCase)
             || track.Artist.Contains(query, StringComparison.OrdinalIgnoreCase)
             || track.Album.Contains(query, StringComparison.OrdinalIgnoreCase))];
+    }
+
+    /// <summary>Orders tracks by the key; ties fall back to title so the order is stable.</summary>
+    public static IReadOnlyList<Track> Sort(IEnumerable<Track> tracks, SongSortKey key, bool descending)
+    {
+        var comparer = StringComparer.OrdinalIgnoreCase;
+        var ordered = key switch
+        {
+            SongSortKey.Artist => Order(tracks, track => track.Artist, comparer, descending),
+            SongSortKey.Album => Order(tracks, track => track.Album, comparer, descending),
+            SongSortKey.DateAdded => Order(tracks, track => track.AddedAt, Comparer<DateTimeOffset>.Default, descending),
+            SongSortKey.Duration => Order(tracks, track => track.DurationSeconds, Comparer<int>.Default, descending),
+            _ => Order(tracks, track => track.Title, comparer, descending),
+        };
+        return [.. ordered.ThenBy(track => track.Title, comparer)];
     }
 
     /// <summary>Albums with the artist of the first track as subtitle.</summary>
@@ -71,6 +96,9 @@ public static class LibraryQuery
         [.. tracks.GroupBy(track => Label(key(track)))
             .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
             .Select(group => new LibraryGroup(group.Key, Pluralize(group.Count(), "song"), group.Count()))];
+
+    private static IOrderedEnumerable<Track> Order<TKey>(IEnumerable<Track> tracks, Func<Track, TKey> key, IComparer<TKey> comparer, bool descending) =>
+        descending ? tracks.OrderByDescending(key, comparer) : tracks.OrderBy(key, comparer);
 
     private static string Label(string value) => string.IsNullOrWhiteSpace(value) ? Unknown : value;
 }

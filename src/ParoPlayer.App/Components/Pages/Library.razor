@@ -10,6 +10,7 @@
 @using ParoPlayer.Core.Import
 @inject TimeProvider Time
 @inject CoverBackfillService CoverBackfill
+@inject AppSettings Prefs
 
 <PageHeader Title="What's the mood?" Eyebrow="@Greeting.For(Time.GetLocalNow())">
     <a href="settings" aria-label="Settings" class="flex size-12 shrink-0 items-center justify-center rounded-full bg-panel2">
@@ -59,6 +60,19 @@ else
 
     @if (tab == "Songs")
     {
+        <div class="flex items-center gap-2 px-4 pb-1">
+            <label for="sort-key" class="text-xs text-mute">Sort by</label>
+            <select id="sort-key" class="min-h-12 rounded-xl bg-panel2 px-3 text-fg" @bind="SortKey">
+                @foreach (var key in Enum.GetValues<SongSortKey>())
+                {
+                    <option value="@key">@SortLabel(key)</option>
+                }
+            </select>
+            <button type="button" aria-label="@(Prefs.SortDescending ? "Descending" : "Ascending")" class="flex size-12 items-center justify-center rounded-xl bg-panel2" @onclick="ToggleSortDirection">
+                <i class="@(Prefs.SortDescending ? "fa-solid fa-arrow-down-wide-short" : "fa-solid fa-arrow-up-short-wide")" aria-hidden="true"></i>
+            </button>
+        </div>
+
         <Virtualize Items="songs" Context="track" ItemSize="64">
             <SongRow @key="track.Id" Track="track" IsCurrent="@(Player.Current?.Id == track.Id)" Selecting="@(selection.Count > 0)"
                      Selected="@selection.Contains(track.Id)" OnPlay="TapAsync" OnMenu="OpenMenu" OnLongPress="LongPressAsync" />
@@ -178,9 +192,33 @@ else
         set
         {
             query = value;
-            songs = [.. LibraryQuery.Search(all, query)];
+            Resort();
         }
     }
+
+    private SongSortKey SortKey
+    {
+        get => Prefs.SortKey;
+        set
+        {
+            Prefs.SortKey = value;
+            Resort();
+        }
+    }
+
+    private void ToggleSortDirection()
+    {
+        Prefs.SortDescending = !Prefs.SortDescending;
+        Resort();
+    }
+
+    private void Resort() => songs = [.. LibraryQuery.Sort(LibraryQuery.Search(all, query), Prefs.SortKey, Prefs.SortDescending)];
+
+    private static string SortLabel(SongSortKey key) => key switch
+    {
+        SongSortKey.DateAdded => "Date added",
+        _ => key.ToString(),
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -194,7 +232,7 @@ else
     private async Task ReloadAsync()
     {
         all = [.. await Songs.GetAllAsync()];
-        songs = [.. LibraryQuery.Search(all, query)];
+        Resort();
 
         var smart = (await Lists.GetAllAsync()).Where(playlist => playlist.IsSmart).OrderBy(playlist => playlist.Name);
         mixes = [];
