@@ -49,7 +49,13 @@ public sealed class AndroidPlayerService : IPlayerService, IAsyncDisposable
 
             queue = newQueue;
             player.RepeatMode = RepeatModeOff;
-            player.SetMediaItems(newQueue.Order.Select(ToMediaItem).ToList(), newQueue.Position, 0);
+            player.ClearMediaItems();
+            foreach (var track in newQueue.Order)
+            {
+                player.AddMediaItem(ToMediaItem(track));
+            }
+
+            player.SeekTo(newQueue.Position, 0);
             player.Prepare();
             player.Play();
         });
@@ -112,8 +118,15 @@ public sealed class AndroidPlayerService : IPlayerService, IAsyncDisposable
         var current = queue.Position;
         player.RemoveMediaItems(player.CurrentMediaItemIndex + 1, player.MediaItemCount);
         player.RemoveMediaItems(0, player.CurrentMediaItemIndex);
-        player.AddMediaItems(0, items.Take(current).ToList());
-        player.AddMediaItems(items.Skip(current + 1).ToList());
+        for (var i = 0; i < current; i++)
+        {
+            player.AddMediaItem(i, items[i]);
+        }
+
+        foreach (var item in items.Skip(current + 1))
+        {
+            player.AddMediaItem(item);
+        }
     }, cancellationToken);
 
     public Task<PlayerSnapshot> GetSnapshotAsync(CancellationToken cancellationToken = default) => ReadAsync(cancellationToken);
