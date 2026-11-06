@@ -26,6 +26,25 @@ public class LibraryQueryTests
     }
 
     [Theory]
+    [InlineData(SongSortKey.Title, false, "A B C")]
+    [InlineData(SongSortKey.Title, true, "C B A")]
+    [InlineData(SongSortKey.Artist, false, "C A B")]
+    [InlineData(SongSortKey.Album, true, "A B C")]
+    [InlineData(SongSortKey.DateAdded, false, "B C A")]
+    [InlineData(SongSortKey.Duration, true, "C A B")]
+    public void Sort_OrdersByKeyAndDirection(SongSortKey key, bool descending, string expected)
+    {
+        Track[] tracks =
+        [
+            new() { Title = "A", Artist = "M83", Album = "Dreaming", AddedAt = DateTimeOffset.FromUnixTimeSeconds(30), DurationSeconds = 200 },
+            new() { Title = "B", Artist = "m83", Album = "Dreaming", AddedAt = DateTimeOffset.FromUnixTimeSeconds(10), DurationSeconds = 100 },
+            new() { Title = "C", Artist = "", Album = "Alpha", AddedAt = DateTimeOffset.FromUnixTimeSeconds(20), DurationSeconds = 300 },
+        ];
+
+        Assert.Equal(expected, string.Join(' ', LibraryQuery.Sort(tracks, key, descending).Select(track => track.Title)));
+    }
+
+    [Theory]
     [InlineData(0, "0:00")]
     [InlineData(65, "1:05")]
     [InlineData(3725, "1:02:05")]

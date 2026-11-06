@@ -1,3 +1,5 @@
+using ParoPlayer.Core.Library;
+
 namespace ParoPlayer.App.Services;
 
 /// <summary>User toggles from the Settings screen, persisted in app preferences.</summary>
@@ -31,5 +33,17 @@ public class AppSettings(IPreferences preferences)
     {
         get => preferences.Get(nameof(LockScreenControls), true);
         set => preferences.Set(nameof(LockScreenControls), value);
+    }
+
+    public SongSortKey SortKey
+    {
+        get => Enum.TryParse<SongSortKey>(preferences.Get(nameof(SortKey), nameof(SongSortKey.Title)), out var key) ? key : SongSortKey.Title;
+        set => preferences.Set(nameof(SortKey), value.ToString());
+    }
+
+    public bool SortDescending
+    {
+        get => preferences.Get(nameof(SortDescending), false);
+        set => preferences.Set(nameof(SortDescending), value);
     }
 }
