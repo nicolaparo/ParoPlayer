@@ -16,7 +16,7 @@ public sealed class WaveformBackfillServiceTests : IDisposable
     {
         public int Calls { get; private set; }
 
-        public Task<float[]?> AnalyzeAsync(string filePath, int bars, CancellationToken cancellationToken = default)
+        public Task<float[]?> AnalyzeAsync(string filePath, int bars, Action<float[]>? partial = null, CancellationToken cancellationToken = default)
         {
             Calls++;
             return Task.FromResult(succeeds(filePath) ? new float[bars] : null);

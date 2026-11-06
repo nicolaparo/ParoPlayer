@@ -8,10 +8,12 @@ public sealed class AndroidWaveformAnalyzer : IWaveformAnalyzer
 {
     private const long TimeoutUs = 10_000;
 
-    public Task<float[]?> AnalyzeAsync(string filePath, int bars, CancellationToken cancellationToken = default) =>
-        Task.Run(() => Analyze(filePath, bars, cancellationToken), cancellationToken);
+    private static readonly TimeSpan PartialInterval = TimeSpan.FromMilliseconds(200);
 
-    private static float[]? Analyze(string filePath, int bars, CancellationToken cancellationToken)
+    public Task<float[]?> AnalyzeAsync(string filePath, int bars, Action<float[]>? partial = null, CancellationToken cancellationToken = default) =>
+        Task.Run(() => Analyze(filePath, bars, partial, cancellationToken), cancellationToken);
+
+    private static float[]? Analyze(string filePath, int bars, Action<float[]>? partial, CancellationToken cancellationToken)
     {
         using var extractor = new MediaExtractor();
         extractor.SetDataSource(filePath);
@@ -52,6 +54,7 @@ public sealed class AndroidWaveformAnalyzer : IWaveformAnalyzer
         using var info = new MediaCodec.BufferInfo();
         var inputDone = false;
         var outputDone = false;
+        var lastReport = DateTime.MinValue;
 
         while (!outputDone)
         {
@@ -96,6 +99,12 @@ public sealed class AndroidWaveformAnalyzer : IWaveformAnalyzer
                 buffer.Position(info.Offset);
                 buffer.Limit(info.Offset + info.Size);
                 Accumulate(buffer.AsShortBuffer()!, info.PresentationTimeUs, durationUs, channels, sampleRate, sums, counts);
+                if (partial is not null && DateTime.UtcNow - lastReport > PartialInterval)
+                {
+                    lastReport = DateTime.UtcNow;
+                    var reached = (int)Math.Clamp(info.PresentationTimeUs * bars / durationUs, 0, bars - 1);
+                    partial(Levels(sums, counts, reached));
+                }
             }
 
             outputDone = info.Flags.HasFlag(MediaCodecBufferFlags.EndOfStream);
@@ -107,6 +116,35 @@ public sealed class AndroidWaveformAnalyzer : IWaveformAnalyzer
         var levels = sums.Select((sum, bar) => counts[bar] == 0 ? 0f : (float)Math.Sqrt(sum / counts[bar])).ToArray();
         var max = levels.Max();
         return max <= 0 ? null : [.. levels.Select(level => level / max)];
+    }
+
+    /// <summary>The bars before <paramref name="reached"/> (the one still filling is left out), scaled by the loudest so far; the rest are unknown.</summary>
+    private static float[] Levels(double[] sums, long[] counts, int reached)
+    {
+        var levels = new float[sums.Length];
+        var max = 0f;
+        for (var bar = 0; bar < levels.Length; bar++)
+        {
+            if (bar < reached && counts[bar] > 0)
+            {
+                levels[bar] = (float)Math.Sqrt(sums[bar] / counts[bar]);
+                max = Math.Max(max, levels[bar]);
+            }
+            else
+            {
+                levels[bar] = WaveformStore.Unknown;
+            }
+        }
+
+        if (max > 0)
+        {
+            for (var bar = 0; bar < reached; bar++)
+            {
+                levels[bar] = Math.Max(levels[bar], 0f) / max;
+            }
+        }
+
+        return levels;
     }
 
     private static void Accumulate(Java.Nio.ShortBuffer samples, long timeUs, long durationUs, int channels, int sampleRate, double[] sums, long[] counts)

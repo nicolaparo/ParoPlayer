@@ -34,7 +34,7 @@ public sealed class WaveformBackfillService(IRepository<Track> tracks, WaveformS
         {
             try
             {
-                if (await waveforms.GetAsync(track.Id, track.FilePath, cancellationToken) is not null)
+                if (await waveforms.GetAsync(track.Id, track.FilePath, cancellationToken: cancellationToken) is not null)
                 {
                     created++;
                     continue;

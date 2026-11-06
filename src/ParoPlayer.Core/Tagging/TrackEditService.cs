@@ -11,8 +11,8 @@ public record TrackEditSnapshot(Track Before, byte[]? Cover);
 /// <param name="TagError">Set when the database was updated but the audio file could not be tagged.</param>
 public record TrackEditResult(Track Track, TrackEditSnapshot Snapshot, string? TagError);
 
-/// <summary>Saves manual or looked-up edits to the database and writes them back to the file tags.</summary>
-public class TrackEditService(IRepository<Track> tracks, ITrackTagWriter tagWriter, CoverStore covers)
+/// <summary>Saves manual or looked-up edits to the database and writes them back to the file tags (deferred while the file is playing).</summary>
+public class TrackEditService(IRepository<Track> tracks, DeferredTagWriter tagWriter, CoverStore covers)
 {
     public async Task<TrackEditResult?> ApplyAsync(Guid trackId, TrackEdit edit, byte[]? newCover, CancellationToken cancellationToken = default)
     {
@@ -70,18 +70,10 @@ public class TrackEditService(IRepository<Track> tracks, ITrackTagWriter tagWrit
         return await TryWriteAsync(before, snapshot.Cover, cancellationToken);
     }
 
-    private async Task<string?> TryWriteAsync(Track track, byte[]? cover, CancellationToken cancellationToken)
+    private Task<string?> TryWriteAsync(Track track, byte[]? cover, CancellationToken cancellationToken)
     {
-        try
-        {
-            var tags = new TrackTags(track.Title, track.Artist, track.Album, track.Year, track.Genre, track.TrackNumber);
-            await tagWriter.WriteAsync(track.FilePath, tags, cover, cancellationToken);
-            return null;
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or TagLib.UnsupportedFormatException or TagLib.CorruptFileException)
-        {
-            return ex.Message;
-        }
+        var tags = new TrackTags(track.Title, track.Artist, track.Album, track.Year, track.Genre, track.TrackNumber);
+        return tagWriter.WriteAsync(track.FilePath, new PendingTagChange(tags, cover), cancellationToken);
     }
 
     private static async Task<byte[]?> ReadCoverAsync(string path, CancellationToken cancellationToken) =>

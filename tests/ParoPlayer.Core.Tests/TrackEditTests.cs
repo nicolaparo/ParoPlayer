@@ -1,6 +1,8 @@
 using System.Text;
 using ParoPlayer.Core.Data;
+using ParoPlayer.Core.Bpm;
 using ParoPlayer.Core.Download;
+using ParoPlayer.Core.Playback;
 using ParoPlayer.Core.Import;
 using ParoPlayer.Core.Models;
 using ParoPlayer.Core.Storage;
@@ -19,7 +21,7 @@ public sealed class TrackEditTests : IDisposable
     public TrackEditTests()
     {
         folder = new LibraryFolder(Path.Combine(root, "library"));
-        service = new TrackEditService(repository, writer, new CoverStore(folder, new PassThroughCoverImageProcessor()));
+        service = new TrackEditService(repository, new DeferredTagWriter(new SilentPlayerService(TimeProvider.System, new Random(1)), writer, new TagLibBpmTag()), new CoverStore(folder, new PassThroughCoverImageProcessor()));
     }
 
     public void Dispose()

@@ -31,15 +31,30 @@ public sealed class WaveformStoreTests : IDisposable
 
         public string? AnalyzedPath { get; private set; }
 
-        public Task<float[]?> AnalyzeAsync(string filePath, int bars, CancellationToken cancellationToken = default)
+        public Task<float[]?> AnalyzeAsync(string filePath, int bars, Action<float[]>? partial = null, CancellationToken cancellationToken = default)
         {
             Calls++;
             AnalyzedPath = filePath;
+            partial?.Invoke([0.5f, WaveformStore.Unknown]);
             return Task.FromResult(result);
         }
     }
 
     private static float[] Peaks() => [.. Enumerable.Range(0, WaveformStore.Bars).Select(i => i / (float)WaveformStore.Bars)];
+
+    [Fact]
+    public async Task Get_ReportsPartialResultsWhileComputingButNotFromCache()
+    {
+        var store = new WaveformStore(folder, new FakeAnalyzer(Peaks()));
+        var id = Guid.NewGuid();
+        var partials = new List<float[]>();
+
+        await store.GetAsync(id, audio, partials.Add);
+        await store.GetAsync(id, audio, partials.Add);
+
+        Assert.Single(partials);
+        Assert.Equal(WaveformStore.Unknown, partials[0][1]);
+    }
 
     [Fact]
     public async Task Get_ComputesOnceThenReadsFromCache()

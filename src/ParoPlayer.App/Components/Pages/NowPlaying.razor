@@ -4,7 +4,7 @@
 @using ParoPlayer.Core.Import
 @using ParoPlayer.Core.Bpm
 @inject WaveformStore Waveforms
-@inject BpmDetectionService Bpm
+@inject TrackBpmService Bpm
 @implements IDisposable
 
 <PageHeader Title="Now playing" BackHref="." />
@@ -71,6 +71,8 @@ else
 }
 
 @code {
+    private static readonly TimeSpan PartialRedraw = TimeSpan.FromMilliseconds(200);
+
     private IDisposable? subscription;
     private bool scrubbing;
     private int scrubSeconds;
@@ -114,7 +116,15 @@ else
     {
         try
         {
-            var result = await Waveforms.GetAsync(track.Id, track.FilePath, cancellationToken);
+            // The analyser reports from a background thread; a short ticker redraws with the latest bars.
+            var analysis = Waveforms.GetAsync(track.Id, track.FilePath, partial => { if (peaksTrackId == track.Id) { peaks = partial; } }, cancellationToken);
+            while (!analysis.IsCompleted)
+            {
+                await Task.WhenAny(analysis, Task.Delay(PartialRedraw, cancellationToken));
+                StateHasChanged();
+            }
+
+            var result = await analysis;
             if (peaksTrackId == track.Id)
             {
                 peaks = result;
@@ -141,8 +151,8 @@ else
     {
         try
         {
-            // Not persisted: saving a tag could rewrite the file the player is reading.
-            var result = await Bpm.DetectAsync(track.FilePath, persist: false, cancellationToken: cancellationToken);
+            // An estimate is saved to the tag later, once this track is no longer playing.
+            var result = await Bpm.GetAsync(track, cancellationToken);
             if (peaksTrackId == track.Id)
             {
                 bpm = result;

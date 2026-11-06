@@ -32,6 +32,8 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IPcmDecoder, NoPcmDecoder>();
         services.AddSingleton<IBpmTag, TagLibBpmTag>();
         services.AddSingleton<BpmDetectionService>();
+        services.AddSingleton<TrackBpmService>();
+        services.AddSingleton<DeferredTagWriter>();
         services.AddSingleton<CoverBackfillService>();
         services.AddSingleton<WaveformBackfillService>();
         services.AddSingleton<TrackImportService>();

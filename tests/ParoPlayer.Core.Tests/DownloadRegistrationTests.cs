@@ -1,3 +1,4 @@
+using ParoPlayer.Core.Playback;
 using Microsoft.Extensions.DependencyInjection;
 using ParoPlayer.Core.Download;
 using ParoPlayer.Core.Storage;
@@ -23,6 +24,7 @@ public sealed class DownloadRegistrationTests : IDisposable
         var services = new ServiceCollection();
         services.AddParoCore(Path.Combine(root, "test.db3"));
         services.AddSingleton<ILibraryFolder>(new LibraryFolder(Path.Combine(root, "library")));
+        services.AddSingleton<IPlayerService>(new SilentPlayerService(TimeProvider.System, new Random(1)));
 
         await using var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
 

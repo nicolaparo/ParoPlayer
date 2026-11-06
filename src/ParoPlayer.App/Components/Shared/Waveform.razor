@@ -1,23 +1,25 @@
-<div class="@(Loading ? "animate-pulse " : "")pointer-events-none flex size-full items-center gap-px" aria-hidden="true">
+@using ParoPlayer.Core.Import
+<div class="pointer-events-none flex size-full items-center gap-px" aria-hidden="true">
     @{
         var bars = Peaks ?? Flat;
         var played = (int)Math.Round(Math.Clamp(Progress, 0, 1) * bars.Length);
     }
     @for (var i = 0; i < bars.Length; i++)
     {
-        var height = (int)Math.Round(8 + Math.Clamp(bars[i], 0f, 1f) * 92);
-        <span class="@(i < played ? "bg-accent" : "bg-line") flex-1 rounded-full" style="height:@(height)%"></span>
+        var known = bars[i] >= 0f;
+        var height = (int)Math.Round(8 + Math.Clamp(known ? bars[i] : 0.5f, 0f, 1f) * 92);
+        <span class="@(i < played ? "bg-accent" : "bg-line") @(Loading && !known ? "animate-pulse" : "") flex-1 rounded-full" style="height:@(height)%"></span>
     }
 </div>
 
 @code {
     /// <summary>Shown at half height while the real levels are being computed, so the track can still be seeked.</summary>
-    private static readonly float[] Flat = [.. Enumerable.Repeat(0.5f, 150)];
+    private static readonly float[] Flat = [.. Enumerable.Repeat(WaveformStore.Unknown, 150)];
 
-    /// <summary>Bar heights between 0 and 1. Null while they are being computed or when they cannot be.</summary>
+    /// <summary>Bar heights between 0 and 1; a negative value is a bar not computed yet. Null before any is known or when they cannot be.</summary>
     [Parameter] public float[]? Peaks { get; set; }
 
-    /// <summary>True while the levels are being computed: the placeholder bars pulse softly.</summary>
+    /// <summary>True while the levels are being computed: the bars not known yet pulse softly.</summary>
     [Parameter] public bool Loading { get; set; }
 
     /// <summary>Played part of the track, between 0 and 1.</summary>

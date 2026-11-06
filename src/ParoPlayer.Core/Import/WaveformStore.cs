@@ -6,14 +6,17 @@ namespace ParoPlayer.Core.Import;
 /// <summary>Computes the loudness peaks of an audio file (platform specific).</summary>
 public interface IWaveformAnalyzer
 {
-    /// <summary>Returns <paramref name="bars"/> peaks between 0 and 1, or null when the file cannot be analysed.</summary>
-    Task<float[]?> AnalyzeAsync(string filePath, int bars, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Returns <paramref name="bars"/> peaks between 0 and 1, or null when the file cannot be analysed. While it works
+    /// it may call <paramref name="partial"/> (from any thread) with the bars so far, <see cref="WaveformStore.Unknown"/> for those not yet computed.
+    /// </summary>
+    Task<float[]?> AnalyzeAsync(string filePath, int bars, Action<float[]>? partial = null, CancellationToken cancellationToken = default);
 }
 
 /// <summary>Used where there is no decoder (Windows preview). The UI shows its placeholder.</summary>
 public sealed class NoWaveformAnalyzer : IWaveformAnalyzer
 {
-    public Task<float[]?> AnalyzeAsync(string filePath, int bars, CancellationToken cancellationToken = default) =>
+    public Task<float[]?> AnalyzeAsync(string filePath, int bars, Action<float[]>? partial = null, CancellationToken cancellationToken = default) =>
         Task.FromResult<float[]?>(null);
 }
 
@@ -22,6 +25,9 @@ public class WaveformStore(ILibraryFolder folder, IWaveformAnalyzer analyzer)
 {
     public const int Bars = 150;
     public const string FolderName = "waveforms";
+
+    /// <summary>Marks a bar that is not computed yet in the partial results.</summary>
+    public const float Unknown = -1f;
 
     private string PathFor(Guid trackId) => Path.Combine(folder.Path, FolderName, $"{trackId:N}.json");
 
@@ -37,7 +43,8 @@ public class WaveformStore(ILibraryFolder folder, IWaveformAnalyzer analyzer)
         }
     }
 
-    public async Task<float[]?> GetAsync(Guid trackId, string audioPath, CancellationToken cancellationToken = default)
+    /// <param name="partial">Called with the bars computed so far while the analysis runs (not called for a cached waveform).</param>
+    public async Task<float[]?> GetAsync(Guid trackId, string audioPath, Action<float[]>? partial = null, CancellationToken cancellationToken = default)
     {
         var path = PathFor(trackId);
         if (File.Exists(path))
@@ -67,7 +74,7 @@ public class WaveformStore(ILibraryFolder folder, IWaveformAnalyzer analyzer)
         try
         {
             File.Copy(audioPath, copy);
-            peaks = await analyzer.AnalyzeAsync(copy, Bars, cancellationToken);
+            peaks = await analyzer.AnalyzeAsync(copy, Bars, partial, cancellationToken);
         }
         finally
         {
