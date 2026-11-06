@@ -21,6 +21,7 @@ public sealed class AndroidPlayerService : IPlayerService, IAsyncDisposable
     private const int RepeatModeOff = 0;
     private const int RepeatModeOne = 1;
     private const int RepeatModeAll = 2;
+    private const int StateIdle = 1;
     private const int StateEnded = 4;
 
     private readonly PlayerHost host;
@@ -68,6 +69,12 @@ public sealed class AndroidPlayerService : IPlayerService, IAsyncDisposable
     {
         if (player.MediaItemCount > 0)
         {
+            // Play() does nothing on an idle player (stopped from the notification, or after an error): prepare it first.
+            if (player.PlaybackState == StateIdle)
+            {
+                player.Prepare();
+            }
+
             if (player.PlaybackState == StateEnded)
             {
                 player.SeekTo(0, 0);
@@ -163,8 +170,12 @@ public sealed class AndroidPlayerService : IPlayerService, IAsyncDisposable
             ? TimeSpan.FromSeconds(Math.Max(current.DurationSeconds, 0))
             : TimeSpan.FromMilliseconds(duration);
 
+        // Media3's rule for showing Pause: playback is wanted and the player is not idle or ended. Player.IsPlaying is
+        // false while buffering or waiting for audio focus, which would leave the button showing Play and doing nothing.
+        var playing = player.PlayWhenReady && player.PlaybackState is not (StateIdle or StateEnded);
+
         return new PlayerSnapshot(
-            current, TimeSpan.FromMilliseconds(Math.Max(player.CurrentPosition, 0)), length, player.IsPlaying,
+            current, TimeSpan.FromMilliseconds(Math.Max(player.CurrentPosition, 0)), length, playing,
             queue.Shuffle, queue.Repeat, index, queue.Order.Count);
     });
 
