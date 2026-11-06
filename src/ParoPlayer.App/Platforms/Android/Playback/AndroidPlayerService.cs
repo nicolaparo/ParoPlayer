@@ -182,11 +182,16 @@ public sealed class AndroidPlayerService : IPlayerService, IAsyncDisposable
 
     private static MediaItem ToMediaItem(Track track)
     {
-        var metadata = new MediaMetadata.Builder()
+        var builder = new MediaMetadata.Builder()
             .SetTitle(track.Title)!
             .SetArtist(track.Artist)!
-            .SetAlbumTitle(track.Album)!
-            .Build()!;
+            .SetAlbumTitle(track.Album)!;
+        if (track.CoverPath.Length > 0)
+        {
+            builder.SetArtworkUri(Android.Net.Uri.FromFile(new Java.IO.File(track.CoverPath)));
+        }
+
+        var metadata = builder.Build()!;
 
         return new MediaItem.Builder()
             .SetMediaId(track.Id.ToString())!

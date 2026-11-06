@@ -6,11 +6,14 @@ using Microsoft.Maui.DevFlow.Blazor;
 using ParoPlayer.App.Services;
 using ParoPlayer.Core;
 using ParoPlayer.Core.Download;
+using ParoPlayer.Core.Import;
 using ParoPlayer.Core.Playback;
 using ParoPlayer.Core.Storage;
 #if ANDROID
+using ParoPlayer.App.Covers;
 using ParoPlayer.App.Downloads;
 using ParoPlayer.App.Playback;
+using ParoPlayer.App.Waveform;
 #endif
 
 namespace ParoPlayer.App;
@@ -29,12 +32,10 @@ public static class MauiProgram
         builder.Services.AddParoCore(Path.Combine(FileSystem.AppDataDirectory, DatabaseFileName));
         builder.Services.AddSingleton<ILibraryFolder>(new LibraryFolder(Path.Combine(FileSystem.AppDataDirectory, LibraryFolderName)));
         builder.Services.AddSingleton<IPreferences>(Preferences.Default);
-        builder.Services.AddSingleton<ISecureStorage>(SecureStorage.Default);
         builder.Services.AddSingleton<IFilePicker>(FilePicker.Default);
         builder.Services.AddSingleton<IShare>(Share.Default);
         builder.Services.AddSingleton<IHapticFeedback>(HapticFeedback.Default);
         builder.Services.AddSingleton<ITrackSharer, MauiTrackSharer>();
-        builder.Services.AddSingleton<IDiscogsTokenStore, SecureStorageDiscogsTokenStore>();
         builder.Services.AddSingleton<IMusicImporter, MauiMusicImporter>();
         builder.Services.AddSingleton<AppSettings>();
         builder.Services.AddSingleton<IConnectivity>(Connectivity.Current);
@@ -42,6 +43,8 @@ public static class MauiProgram
         builder.Services.AddSingleton<IDownloadPolicy, ConnectivityDownloadPolicy>();
         builder.Services.AddSingleton<INotificationPermission, MauiNotificationPermission>();
 #if ANDROID
+        builder.Services.AddSingleton<ICoverImageProcessor, AndroidCoverImageProcessor>();
+        builder.Services.AddSingleton<IWaveformAnalyzer, AndroidWaveformAnalyzer>();
         builder.Services.AddSingleton<IFfmpegLocator, AndroidFfmpegLocator>();
         builder.Services.AddSingleton<IDownloadKeepAlive, AndroidDownloadKeepAlive>();
         builder.Services.AddSingleton<PlayerHost>();
@@ -50,6 +53,7 @@ public static class MauiProgram
         // Windows is a dev preview: the queue and UI work, no audio is played.
         builder.Services.AddSingleton<IPlayerService, SilentPlayerService>();
 #endif
+        builder.Services.AddSingleton<CoverImages>();
         builder.Services.AddSingleton<PlayerState>();
         builder.Services.AddSingleton<DemoLibrary>();
 

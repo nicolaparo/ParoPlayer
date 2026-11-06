@@ -1,5 +1,11 @@
-<div class="@SizeClass flex shrink-0 items-center justify-center rounded-lg font-display font-bold text-white/90" style="@Background" aria-hidden="true">
-    @if (Smart)
+@inject CoverImages Covers
+
+<div class="@SizeClass relative flex shrink-0 items-center justify-center overflow-hidden rounded-lg font-display font-bold text-white/90" style="@Background" aria-hidden="true">
+    @if (coverUri is not null)
+    {
+        <img src="@coverUri" alt="" class="absolute inset-0 size-full object-cover" />
+    }
+    else if (Smart)
     {
         <i class="fa-solid fa-wand-magic-sparkles"></i>
     }
@@ -13,6 +19,13 @@
     [Parameter] public string Seed { get; set; } = "";
 
     [Parameter] public bool Smart { get; set; }
+
+    /// <summary>Cover file of the track; the generated tile is shown while it loads or when it is empty.</summary>
+    [Parameter] public string CoverPath { get; set; } = "";
+
+    private string? coverUri;
+
+    protected override async Task OnParametersSetAsync() => coverUri = await Covers.GetAsync(CoverPath);
 
     [Parameter] public string SizeClass { get; set; } = "size-12 text-base";
 

@@ -1,8 +1,10 @@
 using Microsoft.Extensions.Time.Testing;
 using ParoPlayer.Core.Data;
 using ParoPlayer.Core.Engine;
+using ParoPlayer.Core.Import;
 using ParoPlayer.Core.Models;
 using ParoPlayer.Core.Services;
+using ParoPlayer.Core.Storage;
 
 namespace ParoPlayer.Core.Tests;
 
@@ -20,7 +22,7 @@ public sealed class TrackRemovalServiceTests : IDisposable
     {
         library = new LibraryService(tracks, time);
         playlists = new PlaylistService(new InMemoryRepository<Playlist>(), entries, tracks, new SmartPlaylistEngine(time, new Random(1)));
-        removal = new TrackRemovalService(tracks, entries);
+        removal = new TrackRemovalService(tracks, entries, new WaveformStore(new LibraryFolder(System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName())), new NoWaveformAnalyzer()));
     }
 
     public void Dispose() => Directory.Delete(folder, true);

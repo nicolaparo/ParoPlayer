@@ -10,6 +10,6 @@ Sources: [Android touch target guidance](https://support.google.com/accessibilit
 - Respect safe areas (`env(safe-area-inset-*)`), light and dark themes, system font scaling (use `rem`, not `px`, for text), and `prefers-reduced-motion`.
 - Every icon-only button has an `aria-label`; text contrast at least 4.5:1.
 - Gestures always have a visible alternative (e.g. swipe to remove also has a menu item). Destructive actions offer Undo, not a confirm dialog.
-- Offline is the normal state: no spinner for local data, clear message for features that need a network (download, Discogs).
+- Offline is the normal state: no spinner for local data, clear message for features that need a network (download, online tag lookup).
 - Keep the WebView light: no heavy JS frameworks, no CDN, small CSS bundle, minimal re-renders (`ShouldRender`, keyed lists).
 

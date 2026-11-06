@@ -5,6 +5,7 @@ using ParoPlayer.Core.Download;
 using ParoPlayer.Core.Engine;
 using ParoPlayer.Core.Import;
 using ParoPlayer.Core.Services;
+using ParoPlayer.Core.Tagging;
 using SQLite;
 
 namespace ParoPlayer.Core;
@@ -22,7 +23,17 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<PlaylistService>();
         services.AddSingleton<TrackRemovalService>();
         services.AddSingleton<ITrackMetadataReader, TagLibMetadataReader>();
+        services.TryAddSingleton<ICoverImageProcessor, PassThroughCoverImageProcessor>();
+        services.AddSingleton<CoverStore>();
+        services.TryAddSingleton<IWaveformAnalyzer, NoWaveformAnalyzer>();
+        services.AddSingleton<WaveformStore>();
+        services.AddSingleton<CoverBackfillService>();
         services.AddSingleton<TrackImportService>();
+        services.AddSingleton<TrackEditService>();
+        services.AddSingleton<IHttpFetcher, HttpClientFetcher>();
+        services.AddSingleton<IMetadataSource, MusicBrainzSource>();
+        services.AddSingleton<IMetadataSource, ITunesSource>();
+        services.AddSingleton<MetadataLookupService>();
         return services.AddParoDownload();
     }
 

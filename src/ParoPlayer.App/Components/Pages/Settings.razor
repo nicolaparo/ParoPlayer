@@ -1,6 +1,5 @@
 @page "/settings"
 @inject AppSettings Prefs
-@inject IDiscogsTokenStore TokenStore
 @inject ILibraryFolder LibraryFolder
 @inject LibraryService Library
 @inject DemoLibrary Demo
@@ -13,22 +12,6 @@
     <ToggleRow Title="Crossfade" Description="5 seconds" Value="Prefs.Crossfade" ValueChanged="value => Prefs.Crossfade = value" />
     <ToggleRow Title="Android Auto" Description="Show ParoPlayer in the car" Value="Prefs.AndroidAuto" ValueChanged="value => Prefs.AndroidAuto = value" />
     <ToggleRow Title="Lock screen controls" Description="Notification and lock screen player" Value="Prefs.LockScreenControls" ValueChanged="value => Prefs.LockScreenControls = value" />
-
-    <h2 class="mb-2 mt-6 text-xs uppercase tracking-wider text-mute">Discogs</h2>
-    <label for="discogs-token" class="text-xs uppercase tracking-wider text-mute">Personal token</label>
-    <input id="discogs-token" type="password" autocomplete="off" class="mb-2 mt-1 min-h-12 w-full rounded-xl border border-line bg-panel2 px-3 text-fg"
-           placeholder="@(hasToken ? "Token saved. Enter a new one to replace it." : "Paste your Discogs token")"
-           @bind="token" @bind:event="oninput" />
-    <div class="flex gap-2">
-        <button type="button" class="min-h-12 flex-1 rounded-xl bg-accent px-4 font-semibold text-accent-fg disabled:opacity-60"
-                disabled="@string.IsNullOrWhiteSpace(token)" @onclick="SaveTokenAsync">Save token</button>
-        <button type="button" class="min-h-12 flex-1 rounded-xl bg-panel2 px-4 font-semibold disabled:opacity-60"
-                disabled="@(!hasToken)" @onclick="ClearTokenAsync">Remove token</button>
-    </div>
-    @if (tokenMessage is not null)
-    {
-        <p class="mt-2 text-sm text-mute" role="status">@tokenMessage</p>
-    }
 
     <h2 class="mb-2 mt-6 text-xs uppercase tracking-wider text-mute">Storage</h2>
     <div class="mb-3 rounded-2xl bg-panel2 p-3">
@@ -53,56 +36,18 @@
     private const bool IsDebug = false;
 #endif
 
-    private string token = "";
-    private bool hasToken;
-    private string? tokenMessage;
     private int songCount;
     private long usedBytes;
 
     protected override async Task OnInitializedAsync()
     {
-        hasToken = !string.IsNullOrEmpty(await ReadTokenAsync());
         await LoadStorageAsync();
-    }
-
-    private async Task<string?> ReadTokenAsync()
-    {
-        try
-        {
-            return await TokenStore.GetAsync();
-        }
-        catch (Exception ex) when (ex is InvalidOperationException or PlatformNotSupportedException or System.Security.Cryptography.CryptographicException)
-        {
-            return null;
-        }
     }
 
     private async Task LoadStorageAsync()
     {
         songCount = (await Library.GetAllAsync()).Count;
         usedBytes = await LibraryStorage.MeasureAsync(LibraryFolder);
-    }
-
-    private async Task SaveTokenAsync()
-    {
-        try
-        {
-            await TokenStore.SetAsync(token.Trim());
-            token = "";
-            hasToken = true;
-            tokenMessage = "Token saved on this device.";
-        }
-        catch (Exception ex) when (ex is InvalidOperationException or PlatformNotSupportedException or System.Security.Cryptography.CryptographicException)
-        {
-            tokenMessage = $"Could not store the token securely: {ex.Message}";
-        }
-    }
-
-    private async Task ClearTokenAsync()
-    {
-        await TokenStore.ClearAsync();
-        hasToken = false;
-        tokenMessage = "Token removed.";
     }
 
     private async Task LoadDemoAsync()

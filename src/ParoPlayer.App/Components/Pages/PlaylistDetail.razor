@@ -69,6 +69,17 @@ else
         </ActionSheet>
     }
 
+    @if (menuTrack is not null)
+    {
+        <ActionSheet Title="@menuTrack.Title" OnClose="CloseMenu">
+            <button type="button" class="flex min-h-12 w-full items-center gap-3 rounded-xl px-3" @onclick="() => Edit(menuTrack)">
+                <i class="fa-solid fa-pen w-5 text-center" aria-hidden="true"></i>Edit info
+            </button>
+        </ActionSheet>
+    }
+
+    <TrackEditor Track="editing" OnChanged="ReloadAsync" OnClosed="CloseEditor" />
+
     @if (tracks.Count == 0)
     {
         <p class="px-4 pt-2 text-sm text-mute">@(playlist.IsSmart ? "No songs match these rules." : "This playlist is empty.")</p>
@@ -77,7 +88,7 @@ else
     <Virtualize Items="tracks" Context="track" ItemSize="64">
         <div @key="track.Id" class="flex min-h-16 items-center">
             <div class="min-w-0 flex-1">
-                <SongRow Track="track" IsCurrent="@(Player.Current?.Id == track.Id)" OnPlay="PlayAsync" />
+                <SongRow Track="track" IsCurrent="@(Player.Current?.Id == track.Id)" OnPlay="PlayAsync" OnMenu="OpenMenu" />
             </div>
             @if (!playlist.IsSmart)
             {
@@ -97,6 +108,8 @@ else
     private List<Track> candidates = [];
     private bool adding;
     private Track? undoTrack;
+    private Track? menuTrack;
+    private Track? editing;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -129,6 +142,18 @@ else
     private Task PlayFirst() => PlayAsync(tracks[0]);
 
     private Task PlayRandom() => Playback.PlayShuffledAsync(tracks, Rng);
+
+    private void OpenMenu(Track track) => menuTrack = track;
+
+    private void CloseMenu() => menuTrack = null;
+
+    private void Edit(Track track)
+    {
+        menuTrack = null;
+        editing = track;
+    }
+
+    private void CloseEditor() => editing = null;
 
     private void ToggleAdding() => adding = !adding;
 

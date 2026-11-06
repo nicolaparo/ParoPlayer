@@ -5,7 +5,7 @@
         {
             <i class="@(Selected ? "fa-solid fa-circle-check text-accent" : "fa-regular fa-circle text-mute") text-xl" aria-hidden="true"></i>
         }
-        <ArtTile Seed="@Track.Album" />
+        <ArtTile Seed="@Track.Album" CoverPath="@Track.CoverPath" />
         <span class="min-w-0 flex-1">
             <span class="@(IsCurrent ? "text-accent" : "text-fg") block truncate font-semibold">@Track.Title</span>
             <span class="block truncate text-xs text-mute">@LibraryQuery.Subtitle(Track)</span>

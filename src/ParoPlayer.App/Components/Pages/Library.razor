@@ -7,7 +7,9 @@
 @inject ITrackSharer Sharer
 @inject IHapticFeedback Haptics
 @implements IDisposable
+@using ParoPlayer.Core.Import
 @inject TimeProvider Time
+@inject CoverBackfillService CoverBackfill
 
 <PageHeader Title="What's the mood?" Eyebrow="@Greeting.For(Time.GetLocalNow())">
     <a href="settings" aria-label="Settings" class="flex size-12 shrink-0 items-center justify-center rounded-full bg-panel2">
@@ -131,6 +133,9 @@ else
         <button type="button" class="flex min-h-12 w-full items-center gap-3 rounded-xl px-3" @onclick="() => ShareAsync([menuTrack])">
             <i class="fa-solid fa-share-nodes w-5 text-center" aria-hidden="true"></i>Share
         </button>
+        <button type="button" class="flex min-h-12 w-full items-center gap-3 rounded-xl px-3" @onclick="() => Edit(menuTrack)">
+            <i class="fa-solid fa-pen w-5 text-center" aria-hidden="true"></i>Edit info
+        </button>
         <button type="button" class="flex min-h-12 w-full items-center gap-3 rounded-xl px-3" @onclick="() => ToggleSelect(menuTrack)">
             <i class="fa-regular fa-square-check w-5 text-center" aria-hidden="true"></i>Select
         </button>
@@ -139,6 +144,8 @@ else
         </button>
     </ActionSheet>
 }
+
+<TrackEditor Track="editing" OnChanged="ReloadAsync" OnClosed="CloseEditor" />
 
 @if (deleting is not null)
 {
@@ -159,6 +166,7 @@ else
     private string query = "";
     private readonly HashSet<Guid> selection = [];
     private Track? menuTrack;
+    private Track? editing;
     private List<Track>? deleting;
     private string? message;
 
@@ -172,7 +180,14 @@ else
         }
     }
 
-    protected override Task OnInitializedAsync() => ReloadAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadAsync();
+        if (await CoverBackfill.RunAsync() > 0)
+        {
+            await ReloadAsync();
+        }
+    }
 
     private async Task ReloadAsync()
     {
@@ -223,6 +238,14 @@ else
     private void OpenMenu(Track track) => menuTrack = track;
 
     private void CloseMenu() => menuTrack = null;
+
+    private void Edit(Track track)
+    {
+        menuTrack = null;
+        editing = track;
+    }
+
+    private void CloseEditor() => editing = null;
 
     private void ToggleSelect(Track track)
     {

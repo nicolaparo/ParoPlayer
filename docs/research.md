@@ -16,8 +16,8 @@ Findings gathered while planning. Unverified items are marked.
 - Command lines (untested): m4a `-i in -i cover.jpg -map 0:a -map 1 -c:a aac -b:a 192k -c:v mjpeg -disposition:v:0 attached_pic out.m4a`; flac similar with `-c:a flac`; opus `-c:a libopus` or `-c:a opus -strict -2` (cover art in opus unclear).
 - `YoutubeExplode.Converter` needs an external CLI; use `SetFFmpegPath`.
 
-## Discogs
-- Search `GET https://api.discogs.com/database/search`, details `GET /releases/{id}` (images array). Header `Authorization: Discogs token=...`. 60 req/min authenticated, 25 unauthenticated. Descriptive User-Agent required. Developer page returned 403 to the research agent; terms (updated 2025-05-27) split data into CC0 and restricted: personal use only.
+## Online metadata (decision: no Discogs)
+- Discogs needed a personal token, so it was dropped. Used instead, all without authentication: MusicBrainz `GET /ws/2/recording?query=...&fmt=json` (1 req/s, descriptive User-Agent), Cover Art Archive `GET /release/{mbid}/front-500`, iTunes `GET /search?term=...&entity=song`.
 
 ## Toolchain (this machine)
 - SDK `11.0.100-rc.3.26522.148` pinned in `global.json`; unpinned `dotnet` picks 10.0.401 which cannot target net11.0.

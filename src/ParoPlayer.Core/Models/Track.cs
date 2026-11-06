@@ -31,4 +31,7 @@ public class Track : IEntity
     public DateTimeOffset? LastPlayedAt { get; set; }
 
     public int TrackNumber { get; set; }
+
+    /// <summary>Square cover image inside the library folder, or empty when the track has none.</summary>
+    public string CoverPath { get; set; } = "";
 }

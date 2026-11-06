@@ -1,10 +1,11 @@
 using ParoPlayer.Core.Data;
+using ParoPlayer.Core.Import;
 using ParoPlayer.Core.Models;
 
 namespace ParoPlayer.Core.Services;
 
 /// <summary>Deletes tracks from the library, from manual playlists and (when no other track uses it) from disk.</summary>
-public class TrackRemovalService(IRepository<Track> tracks, IRepository<PlaylistTrack> entries)
+public class TrackRemovalService(IRepository<Track> tracks, IRepository<PlaylistTrack> entries, WaveformStore waveforms)
 {
     public async Task RemoveAsync(IReadOnlyCollection<Guid> trackIds)
     {
@@ -26,6 +27,16 @@ public class TrackRemovalService(IRepository<Track> tracks, IRepository<Playlist
         foreach (var path in removed.Select(track => track.FilePath).Where(path => path.Length > 0 && !stillUsed.Contains(path)).Distinct())
         {
             File.Delete(path);
+        }
+
+        foreach (var track in removed)
+        {
+            waveforms.Delete(track.Id);
+        }
+
+        foreach (var cover in removed.Select(track => track.CoverPath).Where(path => path.Length > 0))
+        {
+            File.Delete(cover);
         }
     }
 }

@@ -5,7 +5,7 @@ using ParoPlayer.Core.Storage;
 namespace ParoPlayer.Core.Import;
 
 /// <summary>Copies picked audio into the private library folder and creates a <see cref="Track"/> for each file.</summary>
-public class TrackImportService(ILibraryFolder folder, ITrackMetadataReader reader, LibraryService library)
+public class TrackImportService(ILibraryFolder folder, ITrackMetadataReader reader, LibraryService library, CoverStore covers)
 {
     public async Task<Track> ImportAsync(string fileName, Stream content, CancellationToken cancellationToken = default)
     {
@@ -18,7 +18,7 @@ public class TrackImportService(ILibraryFolder folder, ITrackMetadataReader read
         }
 
         var metadata = await reader.ReadAsync(targetPath, cancellationToken);
-        return await library.AddTrackAsync(new Track
+        var track = new Track
         {
             Title = string.IsNullOrWhiteSpace(metadata.Title) ? Path.GetFileNameWithoutExtension(targetPath) : metadata.Title,
             Artist = metadata.Artist,
@@ -28,7 +28,9 @@ public class TrackImportService(ILibraryFolder folder, ITrackMetadataReader read
             DurationSeconds = metadata.DurationSeconds,
             TrackNumber = metadata.TrackNumber,
             FilePath = targetPath,
-        });
+        };
+        track.CoverPath = await covers.SaveAsync(track.Id, metadata.Cover, cancellationToken);
+        return await library.AddTrackAsync(track);
     }
 
     private static string SafeFileName(string fileName)

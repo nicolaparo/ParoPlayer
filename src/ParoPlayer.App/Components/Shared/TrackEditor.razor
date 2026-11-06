@@ -1,0 +1,255 @@
+@using ParoPlayer.Core.Tagging
+@inject TrackEditService Editor
+@inject MetadataLookupService Lookup
+@inject IFilePicker Picker
+@inject CoverImages Covers
+
+@if (Track is not null)
+{
+    <ActionSheet Title="Edit song info" Tall="true" OnClose="OnClosed">
+        <ChildContent>
+        <div class="pb-2">
+            <div class="mb-3 flex items-center gap-3">
+                @if (newCoverUri is not null)
+                {
+                    <img src="@newCoverUri" alt="New cover" class="size-16 shrink-0 rounded-lg object-cover" />
+                }
+                else
+                {
+                    <ArtTile Seed="@Track.Album" CoverPath="@Track.CoverPath" SizeClass="size-16 text-xl" />
+                }
+                <div class="min-w-0 flex-1">
+                    <div class="truncate text-sm text-mute">@(newCover is null ? "Current cover" : "New cover, saved with the song")</div>
+                    <button type="button" class="flex min-h-12 items-center gap-2 text-accent" @onclick="PickCoverAsync">
+                        <i class="fa-solid fa-image" aria-hidden="true"></i>Choose cover
+                    </button>
+                </div>
+            </div>
+
+            <label for="edit-title" class="text-xs uppercase tracking-wider text-mute">Title</label>
+            <input id="edit-title" class="mb-2 mt-1 min-h-12 w-full rounded-xl border border-line bg-panel2 px-3 text-fg" @bind="title" @bind:event="oninput" />
+            <label for="edit-artist" class="text-xs uppercase tracking-wider text-mute">Artist</label>
+            <input id="edit-artist" class="mb-2 mt-1 min-h-12 w-full rounded-xl border border-line bg-panel2 px-3 text-fg" @bind="artist" @bind:event="oninput" />
+            <label for="edit-album" class="text-xs uppercase tracking-wider text-mute">Album</label>
+            <input id="edit-album" class="mb-2 mt-1 min-h-12 w-full rounded-xl border border-line bg-panel2 px-3 text-fg" @bind="album" @bind:event="oninput" />
+            <label for="edit-genre" class="text-xs uppercase tracking-wider text-mute">Genre</label>
+            <input id="edit-genre" class="mb-2 mt-1 min-h-12 w-full rounded-xl border border-line bg-panel2 px-3 text-fg" @bind="genre" @bind:event="oninput" />
+            <div class="flex gap-2">
+                <div class="min-w-0 flex-1">
+                    <label for="edit-year" class="text-xs uppercase tracking-wider text-mute">Year</label>
+                    <input id="edit-year" type="number" inputmode="numeric" min="0" max="9999" class="mb-2 mt-1 min-h-12 w-full rounded-xl border border-line bg-panel2 px-3 text-fg" @bind="year" @bind:event="oninput" />
+                </div>
+                <div class="min-w-0 flex-1">
+                    <label for="edit-track" class="text-xs uppercase tracking-wider text-mute">Track number</label>
+                    <input id="edit-track" type="number" inputmode="numeric" min="0" max="999" class="mb-2 mt-1 min-h-12 w-full rounded-xl border border-line bg-panel2 px-3 text-fg" @bind="trackNumber" @bind:event="oninput" />
+                </div>
+            </div>
+
+            <button type="button" class="mt-2 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-panel2 font-semibold disabled:opacity-60"
+                    disabled="@searching" @onclick="SearchAsync">
+                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>Re-check online
+            </button>
+            @if (searchMessage is not null)
+            {
+                <p class="mt-2 text-sm text-mute" role="status">@searchMessage</p>
+            }
+
+            @if (preview is null)
+            {
+                @foreach (var candidate in candidates)
+                {
+                    <button type="button" class="mt-2 flex min-h-12 w-full flex-col items-start justify-center rounded-xl bg-panel2 px-3 py-2 text-left" @onclick="() => ShowPreviewAsync(candidate)">
+                        <span class="w-full truncate font-semibold">@candidate.Title</span>
+                        <span class="w-full truncate text-xs text-mute">@candidate.Artist · @candidate.Album · @candidate.Source</span>
+                    </button>
+                }
+            }
+            else
+            {
+                <div class="mt-3 rounded-2xl bg-panel2 p-3">
+                    <p class="mb-2 font-semibold">Changes from @preview.Source</p>
+                    <div class="flex items-start gap-3">
+                        @if (previewCoverUri is not null)
+                        {
+                            <img src="@previewCoverUri" alt="Candidate cover" class="size-16 shrink-0 rounded-lg object-cover" />
+                        }
+                        <div class="min-w-0 flex-1">
+                            @foreach (var change in changes)
+                            {
+                                <div class="py-1 text-sm">
+                                    <span class="text-xs uppercase tracking-wider text-mute">@change.Field</span>
+                                    <div class="break-words text-mute line-through">@(change.Before.Length > 0 ? change.Before : "empty")</div>
+                                    <div class="break-words">@(change.After.Length > 0 ? change.After : "empty")</div>
+                                </div>
+                            }
+                            @if (changes.Count == 0)
+                            {
+                                <p class="text-sm text-mute">No text changes.</p>
+                            }
+                        </div>
+                    </div>
+                    <div class="mt-2 flex gap-2">
+                        <button type="button" class="min-h-12 flex-1 rounded-xl bg-accent px-4 font-semibold text-accent-fg" @onclick="ApplyPreview">Use these</button>
+                        <button type="button" class="min-h-12 flex-1 rounded-xl bg-panel px-4 font-semibold" @onclick="DiscardPreview">Back</button>
+                    </div>
+                </div>
+            }
+        </div>
+        </ChildContent>
+        <Footer Context="close">
+            <div class="flex shrink-0 gap-2 py-2">
+                <button type="button" class="min-h-12 flex-1 rounded-xl bg-accent px-4 font-semibold text-accent-fg disabled:opacity-60"
+                        disabled="@(saving || string.IsNullOrWhiteSpace(title))" @onclick="() => SaveAsync(close)">Save</button>
+                <button type="button" class="min-h-12 flex-1 rounded-xl bg-panel2 px-4 font-semibold" @onclick="close">Cancel</button>
+            </div>
+        </Footer>
+    </ActionSheet>
+}
+
+@if (undo is not null)
+{
+    <div class="fade-enter fixed inset-x-4 bottom-24 z-30 flex items-center justify-between gap-2 rounded-xl bg-panel2 px-3 shadow-lg" role="status">
+        <span class="min-w-0 flex-1 text-sm">@undoMessage</span>
+        <button type="button" class="min-h-12 px-3 font-semibold text-accent" @onclick="UndoAsync">Undo</button>
+        <button type="button" class="min-h-12 px-3 font-semibold" @onclick="Confirm">Keep</button>
+    </div>
+}
+
+@code {
+    /// <summary>The song being edited; null hides the sheet.</summary>
+    [Parameter] public Track? Track { get; set; }
+
+    /// <summary>Raised after a save or undo so the page reloads its songs.</summary>
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    [Parameter] public EventCallback OnClosed { get; set; }
+
+    private Guid loadedId;
+    private string title = "";
+    private string artist = "";
+    private string album = "";
+    private string genre = "";
+    private int year;
+    private int trackNumber;
+    private byte[]? newCover;
+    private string? newCoverUri;
+    private bool saving;
+    private bool searching;
+    private string? searchMessage;
+    private IReadOnlyList<MetadataCandidate> candidates = [];
+    private MetadataCandidate? preview;
+    private byte[]? previewCover;
+    private string? previewCoverUri;
+    private IReadOnlyList<FieldChange> changes = [];
+    private TrackEditSnapshot? undo;
+    private string? undoMessage;
+
+    protected override void OnParametersSet()
+    {
+        if (Track is null || Track.Id == loadedId)
+        {
+            return;
+        }
+
+        loadedId = Track.Id;
+        (title, artist, album, genre, year, trackNumber) = TrackEdit.From(Track);
+        newCover = null;
+        newCoverUri = null;
+        candidates = [];
+        preview = null;
+        searchMessage = null;
+    }
+
+    private TrackEdit Draft => new(title, artist, album, genre, year, trackNumber);
+
+    private static string DataUri(byte[] image) => $"data:image/jpeg;base64,{Convert.ToBase64String(image)}";
+
+    private async Task PickCoverAsync()
+    {
+        var file = await Picker.PickAsync(new PickOptions { PickerTitle = "Choose a cover", FileTypes = FilePickerFileType.Images });
+        if (file is null)
+        {
+            return;
+        }
+
+        await using var stream = await file.OpenReadAsync();
+        using var buffer = new MemoryStream();
+        await stream.CopyToAsync(buffer);
+        newCover = buffer.ToArray();
+        newCoverUri = DataUri(newCover);
+    }
+
+    private async Task SearchAsync()
+    {
+        searching = true;
+        preview = null;
+        searchMessage = "Searching online...";
+        candidates = await Lookup.SearchAsync(title, artist);
+        searchMessage = candidates.Count == 0 ? "No matches. Check your connection or edit the fields by hand." : "Pick a match to see what would change.";
+        searching = false;
+    }
+
+    private async Task ShowPreviewAsync(MetadataCandidate candidate)
+    {
+        preview = candidate;
+        changes = TrackEditDiff.Between(Draft, candidate.ApplyTo(Draft));
+        previewCover = await Lookup.FetchCoverAsync(candidate);
+        previewCoverUri = previewCover is null ? null : DataUri(previewCover);
+    }
+
+    private void ApplyPreview()
+    {
+        if (preview is null)
+        {
+            return;
+        }
+
+        (title, artist, album, genre, year, trackNumber) = preview.ApplyTo(Draft);
+        newCover = previewCover ?? newCover;
+        newCoverUri = newCover is null ? null : DataUri(newCover);
+        preview = null;
+        candidates = [];
+        searchMessage = "Applied. Review the fields, then Save.";
+    }
+
+    private void DiscardPreview() => preview = null;
+
+    private async Task SaveAsync(EventCallback close)
+    {
+        if (Track is null)
+        {
+            return;
+        }
+
+        saving = true;
+        var coverPath = Track.CoverPath;
+        var result = await Editor.ApplyAsync(Track.Id, Draft, newCover);
+        saving = false;
+        if (result is not null)
+        {
+            Covers.Invalidate(coverPath);
+            Covers.Invalidate(result.Track.CoverPath);
+            undo = result.Snapshot;
+            undoMessage = result.TagError is null ? "Saved to the song and its file." : $"Saved in the app, but the file tags could not be written: {result.TagError}";
+        }
+
+        loadedId = Guid.Empty;
+        await close.InvokeAsync();
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task UndoAsync()
+    {
+        if (undo is not { } snapshot)
+        {
+            return;
+        }
+
+        undo = null;
+        await Editor.UndoAsync(snapshot);
+        Covers.Invalidate(snapshot.Before.CoverPath);
+        await OnChanged.InvokeAsync();
+    }
+
+    private void Confirm() => undo = null;
+}

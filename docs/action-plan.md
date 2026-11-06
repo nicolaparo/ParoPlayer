@@ -9,7 +9,7 @@
 6. [ ] Spike: native Media3 service playing a file with screen off, controlled from Blazor.
 7. [~] UI from approved mockup: [x] Library, Playlists (list, detail, smart builder), Settings, Import. [ ] Now Playing, Download, Tag editor (see `docs/ui-implementation.md`).
 8. [~] Downloads (YoutubeExplode + ffmpeg + TagLibSharp, queue, Wi-Fi only, foreground service): built and unit-tested, NOT tested on a device. See `docs/download.md`. [ ] Online metadata lookup, [ ] verify on phone.
-9. [ ] Discogs tag override.
+9. [x] Song tag editor with online re-check (MusicBrainz + Cover Art Archive, iTunes fallback; `Core/Tagging`). Edits can be undone until the user taps Keep. Limitation: undo does not remove a cover that was newly embedded in a file that had none.
 10. [ ] Android Auto browse tree + DHU test.
 11. [ ] Wi-Fi transfer: server spike, approval flow, web UI, upload/download.
 

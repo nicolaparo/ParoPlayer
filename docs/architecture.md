@@ -2,7 +2,7 @@
 
 
 ```
-src/ParoPlayer.Core/    net library, no MAUI/UI. Models, repositories (sqlite-net-pcl), smart-playlist engine, queue, tagging + Discogs + download abstractions.
+src/ParoPlayer.Core/    net library, no MAUI/UI. Models, repositories (sqlite-net-pcl), smart-playlist engine, queue, tagging + online metadata lookup + download abstractions.
 src/ParoPlayer.App/     MAUI Blazor Hybrid. Razor UI, Tailwind, Platforms/Android native playback service.
 tests/ParoPlayer.Core.Tests/   xUnit.
 ```
@@ -13,6 +13,6 @@ tests/ParoPlayer.Core.Tests/   xUnit.
 - **Smart playlists** are stored as a rule set (match all/any, rules on field/operator/value, order, limit) and evaluated by a pure Core engine over the track table. Fully unit-tested.
 - **Download:** YoutubeExplode downloads the audio-only stream, **ffmpeg converts it** (user decision: ffmpeg wanted), TagLibSharp writes tags and cover art. ffmpeg-kit is retired and no .NET Android binding exists, so the plan is an ffmpeg CLI binary shipped as `libffmpeg.so` in the APK's native libs and executed from `ApplicationInfo.NativeLibraryDir` (Android 10+ forbids exec from writable dirs; needs extractNativeLibs). arm64-v8a only. **Decided: prebuilt binary, no MP3** (output m4a/AAC default, FLAC/Opus optional). Binary: [hzw1199/Android-FFmpeg-Prebuilt](https://github.com/hzw1199/Android-FFmpeg-Prebuilt) (arm64, FFmpeg 8.x, ~15 MB, 16 KB page aligned, LGPL-style build; mp3lame/opus not confirmed, so native aac/flac work but **mp3 needs a self-built ffmpeg with libmp3lame**). Packaging (unverified, spike it): `<AndroidNativeLibrary Include="...libffmpeg.so"/>`, `AndroidSupportedAbis=arm64-v8a`, `android:extractNativeLibs="true"`; locate with `ApplicationInfo.NativeLibraryDir`, pass to `YoutubeExplode.Converter` via `SetFFmpegPath`. Verify on device: `ls <nativeLibraryDir>`, `ffmpeg -encoders`, ELF page alignment 0x4000. Binary must be checked (hash noted in repo) before bundling. Fallback if it fails: keep the native m4a/AAC stream without conversion. Personal use only; YouTube ToS applies.
 - **Library storage:** only downloaded or imported files (no device scan, no `READ_MEDIA_AUDIO`). Files live in a private library folder owned by the app (`FileSystem.AppDataDirectory/library`) containing a `.nomedia` file so no other app or gallery sees them. Import uses the system file picker and copies into the library. Data lives with the app: back up or export before uninstalling.
-- **Distribution:** personal use, sideloaded APK. So GPL ffmpeg and the Discogs/YouTube terms only concern the user. No Play Store, no signing store setup beyond a local keystore.
-- **Discogs:** `GET /database/search` and `/releases/{id}`, header `Authorization: Discogs token=...`, 60 req/min, descriptive User-Agent `ParoPlayer/1.0` (no personal email). Token entered in Settings, stored in `SecureStorage`. Personal, non-commercial use; check API terms before distributing the app or caching cover art.
+- **Distribution:** personal use, sideloaded APK. So GPL ffmpeg and the YouTube terms only concern the user. No Play Store, no signing store setup beyond a local keystore.
+- **Online metadata:** no accounts or tokens. MusicBrainz recording search (`/ws/2/recording`, descriptive User-Agent, max 1 request/s) with cover art from the Cover Art Archive (`/release/{mbid}/front-500`), iTunes Search (`itunes.apple.com/search`) as fallback. HTTP sits behind `IHttpFetcher`, so tests use fakes. Results are shown as a diff and only applied after the user taps Use these and Save.
 

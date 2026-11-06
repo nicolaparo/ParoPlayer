@@ -121,7 +121,7 @@ internal sealed class DownloadHarness : IDisposable
             Converter,
             new PassThroughAudioConverter(),
             Tags,
-            new TrackImportService(Folder, new FileNameMetadataReader(), Library),
+            new TrackImportService(Folder, new FileNameMetadataReader(), Library, new CoverStore(Folder, new PassThroughCoverImageProcessor())),
             new DownloadWorkFolder(WorkPath));
         Queue = new DownloadQueue(Pipeline, Policy, KeepAlive, TimeProvider.System);
     }

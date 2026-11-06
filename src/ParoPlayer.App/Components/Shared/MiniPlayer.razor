@@ -7,7 +7,7 @@
 {
     <div class="sheet-enter flex min-h-16 shrink-0 items-center gap-1 border-t border-line bg-panel2 pr-2">
         <a href="now" aria-label="Open now playing" class="flex min-h-16 min-w-0 flex-1 items-center gap-3 px-4">
-            <ArtTile Seed="@track.Album" />
+            <ArtTile Seed="@track.Album" CoverPath="@track.CoverPath" />
             <span class="min-w-0 flex-1">
                 <span class="block truncate font-semibold">@track.Title</span>
                 <span class="block truncate text-xs text-mute">@track.Artist</span>

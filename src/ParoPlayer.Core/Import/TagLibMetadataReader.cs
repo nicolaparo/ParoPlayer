@@ -20,7 +20,8 @@ public class TagLibMetadataReader : ITrackMetadataReader
                 tag.FirstGenre?.Trim() ?? "",
                 (int)tag.Year,
                 (int)Math.Round(file.Properties.Duration.TotalSeconds),
-                (int)tag.Track);
+                (int)tag.Track,
+                (tag.Pictures.FirstOrDefault(p => p.Type == TagLib.PictureType.FrontCover) ?? tag.Pictures.FirstOrDefault())?.Data?.Data);
         }
         catch (Exception ex) when (ex is TagLib.CorruptFileException or TagLib.UnsupportedFormatException or IOException or UnauthorizedAccessException)
         {

@@ -37,7 +37,7 @@ public sealed class TrackImportServiceTests : IDisposable
     [Fact]
     public async Task Import_CopiesFileIntoLibraryAndCreatesTrackFromMetadata()
     {
-        var service = new TrackImportService(folder, new FakeReader(new("Hurry Up", "M83", "Dreaming", "Synth", 2011, 305, 3)), library);
+        var service = new TrackImportService(folder, new FakeReader(new("Hurry Up", "M83", "Dreaming", "Synth", 2011, 305, 3)), library, new CoverStore(folder, new PassThroughCoverImageProcessor()));
 
         var track = await service.ImportAsync("hurry.mp3", Bytes("audio"));
 
@@ -48,9 +48,30 @@ public sealed class TrackImportServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Import_WithEmbeddedCover_SavesItInLibraryFolder()
+    {
+        var service = new TrackImportService(folder, new FakeReader(new("Hurry Up", Cover: [1, 2, 3])), library, new CoverStore(folder, new PassThroughCoverImageProcessor()));
+
+        var track = await service.ImportAsync("hurry.mp3", Bytes("audio"));
+
+        Assert.StartsWith(folder.Path, track.CoverPath);
+        Assert.Equal(new byte[] { 1, 2, 3 }, await File.ReadAllBytesAsync(track.CoverPath));
+    }
+
+    [Fact]
+    public async Task Import_WithoutCover_LeavesCoverPathEmpty()
+    {
+        var service = new TrackImportService(folder, new FileNameMetadataReader(), library, new CoverStore(folder, new PassThroughCoverImageProcessor()));
+
+        var track = await service.ImportAsync("plain.mp3", Bytes("audio"));
+
+        Assert.Equal("", track.CoverPath);
+    }
+
+    [Fact]
     public async Task Import_SameNameTwice_KeepsBothFiles()
     {
-        var service = new TrackImportService(folder, new FileNameMetadataReader(), library);
+        var service = new TrackImportService(folder, new FileNameMetadataReader(), library, new CoverStore(folder, new PassThroughCoverImageProcessor()));
 
         var first = await service.ImportAsync("song.mp3", Bytes("one"));
         var second = await service.ImportAsync("song.mp3", Bytes("two"));
@@ -62,7 +83,7 @@ public sealed class TrackImportServiceTests : IDisposable
     [Fact]
     public async Task Import_EmptyTitleFromReader_FallsBackToFileName()
     {
-        var service = new TrackImportService(folder, new FakeReader(new("")), library);
+        var service = new TrackImportService(folder, new FakeReader(new("")), library, new CoverStore(folder, new PassThroughCoverImageProcessor()));
 
         var track = await service.ImportAsync("My Song.flac", Bytes("x"));
 
