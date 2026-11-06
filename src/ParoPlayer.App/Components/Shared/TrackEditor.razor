@@ -106,20 +106,16 @@
     </ActionSheet>
 }
 
-@if (undo is not null)
+@if (notice is not null)
 {
-    <div class="fade-enter fixed inset-x-4 bottom-44 z-30 flex items-center justify-between gap-2 rounded-xl bg-panel2 px-3 shadow-lg" role="status">
-        <span class="min-w-0 flex-1 text-sm">@undoMessage</span>
-        <button type="button" class="min-h-12 px-3 font-semibold text-accent" @onclick="UndoAsync">Undo</button>
-        <button type="button" class="min-h-12 px-3 font-semibold" @onclick="Confirm">Keep</button>
-    </div>
+    <Toast @key="notice" Message="@notice" OnDismissed="DismissNotice" />
 }
 
 @code {
     /// <summary>The song being edited; null hides the sheet.</summary>
     [Parameter] public Track? Track { get; set; }
 
-    /// <summary>Raised after a save or undo so the page reloads its songs.</summary>
+    /// <summary>Raised after a save so the page reloads its songs.</summary>
     [Parameter] public EventCallback OnChanged { get; set; }
 
     [Parameter] public EventCallback OnClosed { get; set; }
@@ -141,8 +137,7 @@
     private byte[]? previewCover;
     private string? previewCoverUri;
     private IReadOnlyList<FieldChange> changes = [];
-    private TrackEditSnapshot? undo;
-    private string? undoMessage;
+    private string? notice;
 
     protected override void OnParametersSet()
     {
@@ -229,8 +224,7 @@
         {
             Covers.Invalidate(coverPath);
             Covers.Invalidate(result.Track.CoverPath);
-            undo = result.Snapshot;
-            undoMessage = result.TagError is null ? "Saved to the song and its file." : $"Saved in the app, but the file tags could not be written: {result.TagError}";
+            notice = result.TagError is null ? null : $"Saved in the app, but the file tags could not be written: {result.TagError}";
         }
 
         loadedId = Guid.Empty;
@@ -238,18 +232,5 @@
         await OnChanged.InvokeAsync();
     }
 
-    private async Task UndoAsync()
-    {
-        if (undo is not { } snapshot)
-        {
-            return;
-        }
-
-        undo = null;
-        await Editor.UndoAsync(snapshot);
-        Covers.Invalidate(snapshot.Before.CoverPath);
-        await OnChanged.InvokeAsync();
-    }
-
-    private void Confirm() => undo = null;
+    private void DismissNotice() => notice = null;
 }

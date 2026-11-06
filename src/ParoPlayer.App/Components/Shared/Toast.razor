@@ -1,0 +1,50 @@
+@implements IDisposable
+
+<div class="@(fading ? "toast-leave" : "fade-enter") fixed inset-x-4 top-4 z-50 flex items-center justify-between gap-2 rounded-xl bg-panel2 px-4 py-1 shadow-lg" style="margin-top: env(safe-area-inset-top)" role="status">
+    <span class="min-w-0 flex-1 py-2 text-sm">@Message</span>
+    @if (ActionLabel is not null)
+    {
+        <button type="button" class="min-h-12 px-3 font-semibold text-accent" @onclick="OnAction">@ActionLabel</button>
+    }
+</div>
+
+@code {
+    private const int VisibleMilliseconds = 4600;
+    private const int FadeMilliseconds = 400;
+
+    private readonly CancellationTokenSource cancel = new();
+    private bool fading;
+
+    [Parameter, EditorRequired] public string Message { get; set; } = "";
+
+    /// <summary>Label of the optional action button (for example Undo).</summary>
+    [Parameter] public string? ActionLabel { get; set; }
+
+    [Parameter] public EventCallback OnAction { get; set; }
+
+    /// <summary>Raised once the toast has faded out, about five seconds after it appeared.</summary>
+    [Parameter] public EventCallback OnDismissed { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await Task.Delay(VisibleMilliseconds, cancel.Token);
+            fading = true;
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(FadeMilliseconds, cancel.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        await OnDismissed.InvokeAsync();
+    }
+
+    public void Dispose()
+    {
+        cancel.Cancel();
+        cancel.Dispose();
+    }
+}

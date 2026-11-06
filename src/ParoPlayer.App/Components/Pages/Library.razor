@@ -124,7 +124,7 @@ else
 
 @if (message is not null)
 {
-    <p class="fade-enter fixed inset-x-4 bottom-24 z-30 rounded-xl bg-panel2 px-4 py-3 text-sm shadow-lg" role="status">@message</p>
+    <Toast @key="message" Message="@message" OnDismissed="DismissMessage" />
 }
 
 @if (menuTrack is not null)
@@ -169,6 +169,8 @@ else
     private Track? editing;
     private List<Track>? deleting;
     private string? message;
+
+    private void DismissMessage() => message = null;
 
     private string Query
     {

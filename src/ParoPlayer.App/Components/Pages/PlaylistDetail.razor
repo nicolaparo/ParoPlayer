@@ -31,10 +31,7 @@ else
 
     @if (undoTrack is not null)
     {
-        <div class="fade-enter fixed inset-x-4 bottom-44 z-30 flex items-center justify-between gap-2 rounded-xl bg-panel2 px-3 shadow-lg" role="status">
-            <span class="min-w-0 truncate text-sm">Removed @undoTrack.Title</span>
-            <button type="button" class="min-h-12 px-3 font-semibold text-accent" @onclick="UndoAsync">Undo</button>
-        </div>
+        <Toast @key="undoTrack.Id" Message="@($"Removed {undoTrack.Title}")" ActionLabel="Undo" OnAction="UndoAsync" OnDismissed="DismissUndo" />
     }
 
     @if (!playlist.IsSmart)
@@ -169,6 +166,8 @@ else
         undoTrack = track;
         await ReloadAsync();
     }
+
+    private void DismissUndo() => undoTrack = null;
 
     private async Task UndoAsync()
     {
