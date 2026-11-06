@@ -1,6 +1,5 @@
 @page "/"
 @inject LibraryService Songs
-@inject PlaylistService Lists
 @inject PlayerState Player
 @inject IPlayerService Playback
 @inject TrackRemovalService Removal
@@ -20,19 +19,6 @@
         <i class="fa-solid fa-gear" aria-hidden="true"></i>
     </a>
 </PageHeader>
-
-@if (mixes.Count > 0)
-{
-    <div class="flex gap-3 overflow-x-auto px-4 pb-3 pt-1">
-        @foreach (var mix in mixes)
-        {
-            <a href="playlists/@mix.Playlist.Id" class="flex h-24 w-36 shrink-0 flex-col justify-between rounded-3xl rounded-bl-md p-3 text-white" style="@MixBackground(mix.Playlist.Name)">
-                <span class="font-display text-base font-bold leading-tight">@mix.Playlist.Name</span>
-                <span class="text-xs"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> @LibraryQuery.Pluralize(mix.Count, "song")</span>
-            </a>
-        }
-    </div>
-}
 
 <div data-remember-scroll class="mx-4 mb-2 flex min-h-12 items-center gap-2 rounded-xl bg-panel2 px-3">
     <i class="fa-solid fa-magnifying-glass text-mute" aria-hidden="true"></i>
@@ -174,11 +160,8 @@ else
 @code {
     private static readonly string[] TabNames = ["Songs", "Albums", "Artists", "Genres", "Folders"];
 
-    private record Mix(Playlist Playlist, int Count);
-
     private List<Track> all = [];
     private List<Track> songs = [];
-    private List<Mix> mixes = [];
     private string tab = "";
     private string query = "";
     private bool restorePending;
@@ -253,13 +236,6 @@ else
     {
         all = [.. await Songs.GetAllAsync()];
         Resort();
-
-        var smart = (await Lists.GetAllAsync()).Where(playlist => playlist.IsSmart).OrderBy(playlist => playlist.Name);
-        mixes = [];
-        foreach (var playlist in smart)
-        {
-            mixes.Add(new Mix(playlist, (await Lists.GetTracksAsync(playlist.Id)).Count));
-        }
     }
 
     private void SelectTab(string name) => tab = ViewState.Tab = name;
@@ -380,7 +356,4 @@ else
         "Genres" => LibraryQuery.Genres(songs),
         _ => LibraryQuery.Folders(songs),
     };
-
-    private static string MixBackground(string name) =>
-        $"background:linear-gradient(150deg,hsl({Math.Abs(name.Sum(c => c) * 37 % 360)} 55% 45%),hsl({Math.Abs(name.Sum(c => c) * 37 % 360)} 45% 22%))";
 }
