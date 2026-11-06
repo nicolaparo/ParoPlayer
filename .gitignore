@@ -11,3 +11,6 @@ node_modules/
 
 # Prebuilt ffmpeg (15 MB), fetched per docs/download.md
 src/ParoPlayer.App/Platforms/Android/lib/
+
+# Third-party Microsoft DevFlow skills (MIT, dotnet/maui-labs): kept locally, not republished
+.claude/skills/maui-devflow-*/

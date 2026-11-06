@@ -229,7 +229,7 @@ const mmss=(s)=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
 
 const S={screen:'library',tab:'Songs',cur:T[0],playing:true,pos:62,shuffle:false,repeat:false,
   rules:[{f:'plays',op:'>',v:'20'},{f:'added',op:'<',v:'365'}],match:'all',limit:'50',sort:'plays',
-  dl:{q:'',stage:0,p:0},discogs:0,toggles:{wifi:true,crossfade:true,gapless:true,auto:true,lock:true},plName:'Late Night Drive',
+  dl:{q:'',stage:0,p:0},toggles:{wifi:true,crossfade:true,gapless:true,auto:true,lock:true},plName:'Late Night Drive',
   openPl:null,tr:{stage:0}};
 
 const SCREENS=[
@@ -239,9 +239,9 @@ const SCREENS=[
  {id:'playlist',name:'Playlist detail',tab:'Playlists',notes:['Open any playlist to see its tracks. Drag to reorder (manual playlists only).']},
  {id:'smart',name:'Smart playlist builder',tab:'Playlists',notes:['Combine rules with AND / OR. Try changing a rule: the matching tracks update live.','Fields: plays, added days ago, genre, year, rating, artist, duration.','Order and limit: most played, newest, random.']},
  {id:'download',name:'Download',tab:'Download',notes:['Paste a YouTube link or search by name. The app downloads the audio and converts it.','Queue continues in the background with a notification.']},
- {id:'tags',name:'Tag editor (Discogs)',tab:null,notes:['Search Discogs, pick a release and choose which fields overwrite the current tags.','Fields that differ are highlighted. Cover art can be replaced too.']},
+ {id:'tags',name:'Tag editor (online lookup)',tab:null,notes:['Search MusicBrainz, pick a release and choose which fields overwrite the current tags.','Fields that differ are highlighted. Cover art can be replaced too.']},
  {id:'transfer',name:'Wi-Fi transfer',tab:'Settings',notes:['Start a temporary web server on the phone, open the address in a computer browser on the same Wi-Fi.','The phone asks you to allow each new computer. Nothing is shared before you tap Allow.','Once connected, the browser shows the library as a list: drop files to upload, or tap Download on a song.','Try it: Start, then use "Simulate computer connecting".']},
- {id:'settings',name:'Settings',tab:'Settings',notes:['Wi-Fi only downloads, gapless, crossfade, Discogs token, storage.']},
+ {id:'settings',name:'Settings',tab:'Settings',notes:['Wi-Fi only downloads, gapless, crossfade, storage.']},
  {id:'auto',name:'Android Auto & lock screen',tab:null,notes:['Android Auto shows its own templated screens (not our UI). It lists the browse tree we provide: Recent, Playlists, Smart playlists, Albums, Artists.','On the phone, the lock screen and notification give transport controls.']}
 ];
 
@@ -319,7 +319,7 @@ const VIEWS={
  download(){
   const d=S.dl; const stages=['Fetching info','Downloading audio','Converting to M4A','Tagging & cover art','Done'];
   let q='';
-  if(d.stage>0){q=`<div class="panelbox"><div style="display:flex;gap:10px;align-items:center">${art('Cosmic Love','')}<div class="meta" style="flex:1;min-width:0"><div class="t" style="font-weight:600">Cosmic Love</div><div class="s" style="color:var(--mute);font-size:12px">Florence + The Machine · 4:17</div></div></div><div class="pb"><i style="width:${d.p}%"></i></div><div class="s" style="color:var(--mute);font-size:12px;margin-top:4px">${stages[Math.min(d.stage-1,4)]}${d.stage<5?' · '+Math.round(d.p)+'%':''}</div>${d.stage>=5?`<button class="btn block" style="margin-top:8px" data-go="tags">Fix tags with Discogs</button>`:''}</div>`}
+  if(d.stage>0){q=`<div class="panelbox"><div style="display:flex;gap:10px;align-items:center">${art('Cosmic Love','')}<div class="meta" style="flex:1;min-width:0"><div class="t" style="font-weight:600">Cosmic Love</div><div class="s" style="color:var(--mute);font-size:12px">Florence + The Machine · 4:17</div></div></div><div class="pb"><i style="width:${d.p}%"></i></div><div class="s" style="color:var(--mute);font-size:12px;margin-top:4px">${stages[Math.min(d.stage-1,4)]}${d.stage<5?' · '+Math.round(d.p)+'%':''}</div>${d.stage>=5?`<button class="btn block" style="margin-top:8px" data-go="tags">Fix tags online</button>`:''}</div>`}
   return top('Download')+
   `<div class="search">${ic('search')}<input id="dlq" placeholder="Paste a YouTube link or search" value="${d.q}" aria-label="Link or search"></div>
   <div class="field"><label for="fmt">Format</label><select id="fmt"><option>M4A (AAC 256 kbps)</option><option>MP3 (320 kbps)</option><option>Opus (best quality)</option></select></div>
@@ -331,15 +331,15 @@ const VIEWS={
  tags(){
   const rows=[['Title','Midnight City','Midnight City'],['Artist','M83','M83'],['Album','Hurry Up, We\'re…','Hurry Up, We\'re Dreaming'],['Year','','2011'],['Genre','Electronic','Electronic, Synth-pop'],['Label','','Mute'],['Track #','','2/22'],['Cover','low-res 300px','1400px']];
   return top('Edit tags','now')+
-  `<div class="search">${ic('search')}<input value="M83 Midnight City" aria-label="Discogs search"></div>
-   <div class="panelbox" style="display:flex;gap:10px;align-items:center">${art('Hurry Up','')}<div class="meta" style="flex:1;min-width:0"><div class="t" style="font-weight:600">M83 – Hurry Up, We're Dreaming</div><div class="s" style="color:var(--mute);font-size:12px">Discogs release · 2011 · Mute · 2×CD</div></div><span class="badge">BEST MATCH</span></div>
-   <div class="sec">Current → Discogs</div>
+  `<div class="search">${ic('search')}<input value="M83 Midnight City" aria-label="Online search"></div>
+   <div class="panelbox" style="display:flex;gap:10px;align-items:center">${art('Hurry Up','')}<div class="meta" style="flex:1;min-width:0"><div class="t" style="font-weight:600">M83 – Hurry Up, We're Dreaming</div><div class="s" style="color:var(--mute);font-size:12px">MusicBrainz release · 2011 · Mute · 2×CD</div></div><span class="badge">BEST MATCH</span></div>
+   <div class="sec">Current → MusicBrainz</div>
    ${rows.map(r=>`<div class="diff"><b>${r[0]}</b><span>${r[1]||'—'}</span><span class="${r[1]!==r[2]?'new':''}">${r[2]}</span></div>`).join('')}
    <div style="display:flex;gap:8px;margin-top:12px"><button class="btn block" data-act="applytags">Apply 5 changes</button><button class="btn ghost" data-go="now">Cancel</button></div>
    <div class="s" style="color:var(--mute);font-size:12px;margin-top:8px">Only the highlighted fields change. Tags are written into the file.</div>`;
  },
  transfer(){
-  const x=S.tr; const url='http://192.168.1.42:8080';
+  const x=S.tr; const url='http://192.168.1.20:8080';
   let ctl='';
   if(x.stage===0)ctl=`<div class="panelbox"><div class="s" style="color:var(--mute)">The server runs only while this screen is active. Both devices must be on the same Wi-Fi.</div></div><button class="btn block" data-act="trstart">Start sharing</button>`;
   else ctl=`<div class="panelbox"><div class="sec" style="margin:0 0 4px">Open in your computer's browser</div><div style="font-family:var(--display);font-size:20px;word-break:break-all">${url}</div><div class="s" style="color:var(--mute);font-size:12px;margin-top:4px">${x.stage===1?'Waiting for a computer…':x.stage===2?'A computer is asking to connect':'1 computer connected'}</div></div>
@@ -356,7 +356,6 @@ const VIEWS={
   const tg=(k,t,s)=>`<div class="toggle"><div>${t}<small>${s}</small></div><button class="sw ${S.toggles[k]?'on':''}" data-tg="${k}" role="switch" aria-checked="${S.toggles[k]}" aria-label="${t}"></button></div>`;
   return top('Settings')+
   tg('wifi','Download on Wi-Fi only','Saves mobile data')+tg('gapless','Gapless playback','No silence between tracks')+tg('crossfade','Crossfade','5 seconds')+tg('auto','Android Auto','Show ParoPlayer in the car')+tg('lock','Lock screen controls','Notification and lock screen player')+
-  `<div class="sec">Discogs</div><div class="field"><label for="tok">Personal token</label><input id="tok" type="password" value="••••••••••••" aria-label="Discogs token"></div>
   <div class="sec">Storage</div><div class="panelbox">1.4 GB used by 312 songs<div class="pb"><i style="width:34%"></i></div><div class="s" style="color:var(--mute);font-size:12px;margin-top:4px">Library folder: Music/ParoPlayer</div></div>
   <button class="btn ghost block" data-go="transfer" style="margin-bottom:8px">Transfer with a computer (Wi-Fi)…</button>
   <button class="btn ghost block">Import music from device…</button>`;

@@ -18,6 +18,8 @@ This README explains two things:
 
 Android is the product. Windows is only a quick preview target.
 
+> **Personal project, personal use only.** The YouTube download feature relies on scraping, which goes against YouTube's Terms of Service. It is here to show how the pipeline works. You are responsible for what you download and for respecting copyright and the terms of the services you use. The authors give no warranty (see [LICENSE](LICENSE)).
+
 ## Repository map
 
 ```
@@ -132,7 +134,7 @@ The real solution (`ParoPlayer.slnx`, Core library, App, tests) was then created
   - `adb`: wireless pairing, install, logcat, media session checks.
   - `android-ux`: Android quality checklist for UI and playback.
   - `github-issues`: how to create, label and close issues with `gh`.
-  - `maui-devflow-*`: driving and debugging the running app.
+  - `maui-devflow-*` (Microsoft's DevFlow skills, MIT, from [dotnet/maui-labs](https://github.com/dotnet/maui-labs)): driving and debugging the running app. They are not included in this repo.
 
 ### 3. The workflow: issue, code, commit and push, close
 
@@ -165,3 +167,7 @@ Prompt example: "proceed on the other issues with multiple agents, consult the a
 - [`docs/README.md`](docs/README.md): index of all notes.
 - [`src/README.md`](src/README.md): what each project contains.
 - [`CLAUDE.md`](CLAUDE.md): rules for the AI assistant.
+
+## License
+
+[MIT](LICENSE) © 2026 Nicola Paro.
