@@ -2,7 +2,9 @@
 @inject PlayerState Player
 @inject IPlayerService Playback
 @using ParoPlayer.Core.Import
+@using ParoPlayer.Core.Bpm
 @inject WaveformStore Waveforms
+@inject BpmDetectionService Bpm
 @implements IDisposable
 
 <PageHeader Title="Now playing" BackHref="." />
@@ -23,11 +25,21 @@ else
         <div class="min-w-0">
             <h2 class="truncate font-display text-2xl font-bold">@track.Title</h2>
             <p class="truncate text-mute">@LibraryQuery.Subtitle(track)</p>
+            <div class="mt-1 flex h-5 items-center">
+                @if (bpmLoading)
+                {
+                    <span class="h-3 w-16 animate-pulse rounded-full bg-line" aria-label="Detecting BPM"></span>
+                }
+                else if (bpm is { } tempo)
+                {
+                    <span class="text-xs font-semibold tabular-nums text-mute">@tempo BPM</span>
+                }
+            </div>
         </div>
 
         <div>
             <div class="relative h-16 w-full">
-                <Waveform Peaks="@peaks" Progress="@(seconds == 0 ? 0 : (double)shown / seconds)" />
+                <Waveform Peaks="@peaks" Loading="@peaksLoading" Progress="@(seconds == 0 ? 0 : (double)shown / seconds)" />
                 <input type="range" min="0" max="@seconds" value="@shown" aria-label="Seek" class="absolute inset-0 size-full opacity-0"
                        disabled="@(seconds == 0)" @oninput="OnScrub" @onchange="SeekAsync" />
             </div>
@@ -63,6 +75,9 @@ else
     private bool scrubbing;
     private int scrubSeconds;
     private float[]? peaks;
+    private bool peaksLoading;
+    private int? bpm;
+    private bool bpmLoading;
     private Guid peaksTrackId;
     private CancellationTokenSource? peaksLoad;
 
@@ -85,21 +100,67 @@ else
 
         peaksTrackId = track.Id;
         peaks = null;
+        peaksLoading = true;
+        bpm = null;
+        bpmLoading = true;
         peaksLoad?.Cancel();
         peaksLoad?.Dispose();
         var load = peaksLoad = new CancellationTokenSource();
+        StateHasChanged();
+        await Task.WhenAll(LoadPeaksAsync(track, load.Token), LoadBpmAsync(track, load.Token));
+    }
+
+    private async Task LoadPeaksAsync(Track track, CancellationToken cancellationToken)
+    {
         try
         {
-            var result = await Waveforms.GetAsync(track.Id, track.FilePath, load.Token);
+            var result = await Waveforms.GetAsync(track.Id, track.FilePath, cancellationToken);
             if (peaksTrackId == track.Id)
             {
                 peaks = result;
-                StateHasChanged();
             }
         }
         catch (OperationCanceledException)
         {
             // A newer track took over, or the page was left.
+            return;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // The file cannot be analysed: the flat placeholder stays.
+        }
+
+        if (peaksTrackId == track.Id)
+        {
+            peaksLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadBpmAsync(Track track, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Not persisted: saving a tag could rewrite the file the player is reading.
+            var result = await Bpm.DetectAsync(track.FilePath, persist: false, cancellationToken: cancellationToken);
+            if (peaksTrackId == track.Id)
+            {
+                bpm = result;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // No BPM for this file.
+        }
+
+        if (peaksTrackId == track.Id)
+        {
+            bpmLoading = false;
+            StateHasChanged();
         }
     }
 

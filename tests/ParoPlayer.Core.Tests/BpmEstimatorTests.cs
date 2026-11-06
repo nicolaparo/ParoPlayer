@@ -86,6 +86,19 @@ public sealed class BpmEstimatorTests : IDisposable
     }
 
     [Fact]
+    public async Task Detect_WithoutPersist_ReturnsBpmButLeavesFileUntouched()
+    {
+        var path = SilentMp3();
+        var before = await File.ReadAllBytesAsync(path);
+        var service = new BpmDetectionService(new FakeDecoder(ClickTrack(120, 30)), new TagLibBpmTag());
+
+        var bpm = await service.DetectAsync(path, persist: false);
+
+        Assert.InRange(bpm!.Value, 119, 121);
+        Assert.Equal(before, await File.ReadAllBytesAsync(path));
+    }
+
+    [Fact]
     public async Task Detect_UndecodableFile_ReturnsNullAndWritesNothing()
     {
         var path = SilentMp3();

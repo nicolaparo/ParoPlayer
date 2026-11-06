@@ -49,8 +49,12 @@ public class BpmDetectionService(IPcmDecoder decoder, IBpmTag tag)
 {
     public const int AnalysisSeconds = 60;
 
-    /// <summary>Returns the BPM now stored in the file: the existing tag, a newly detected value, or null when none could be found.</summary>
-    public async Task<int?> DetectAsync(string filePath, bool overwrite = false, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Returns the BPM of the file: the existing tag, or a newly detected value (null when none could be found).
+    /// A detected value is written to the tag only when <paramref name="persist"/> is true: do not persist for the
+    /// track that is playing, because saving a tag can rewrite the file the player is reading.
+    /// </summary>
+    public async Task<int?> DetectAsync(string filePath, bool overwrite = false, bool persist = true, CancellationToken cancellationToken = default)
     {
         if (!overwrite)
         {
@@ -61,7 +65,19 @@ public class BpmDetectionService(IPcmDecoder decoder, IBpmTag tag)
             }
         }
 
-        var audio = await decoder.DecodeAsync(filePath, AnalysisSeconds, cancellationToken);
+        // Decode a throwaway copy so analysis never touches the file the player is reading.
+        var copy = Path.Combine(Path.GetTempPath(), $"paroplayer-bpm-{Guid.NewGuid():N}{Path.GetExtension(filePath)}");
+        PcmAudio? audio;
+        try
+        {
+            File.Copy(filePath, copy);
+            audio = await decoder.DecodeAsync(copy, AnalysisSeconds, cancellationToken);
+        }
+        finally
+        {
+            File.Delete(copy);
+        }
+
         if (audio is null)
         {
             return null;
@@ -73,7 +89,11 @@ public class BpmDetectionService(IPcmDecoder decoder, IBpmTag tag)
             return null;
         }
 
-        await tag.WriteAsync(filePath, bpm.Value, cancellationToken);
+        if (persist)
+        {
+            await tag.WriteAsync(filePath, bpm.Value, cancellationToken);
+        }
+
         return bpm;
     }
 }

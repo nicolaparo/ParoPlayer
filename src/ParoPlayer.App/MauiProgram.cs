@@ -5,6 +5,7 @@ using Microsoft.Maui.DevFlow.Blazor;
 #endif
 using ParoPlayer.App.Services;
 using ParoPlayer.Core;
+using ParoPlayer.Core.Bpm;
 using ParoPlayer.Core.Download;
 using ParoPlayer.Core.Import;
 using ParoPlayer.Core.Playback;
@@ -13,6 +14,7 @@ using ParoPlayer.Core.Storage;
 using ParoPlayer.App.Covers;
 using ParoPlayer.App.Downloads;
 using ParoPlayer.App.Playback;
+using ParoPlayer.App.Bpm;
 using ParoPlayer.App.Waveform;
 #endif
 
@@ -45,6 +47,7 @@ public static class MauiProgram
 #if ANDROID
         builder.Services.AddSingleton<ICoverImageProcessor, AndroidCoverImageProcessor>();
         builder.Services.AddSingleton<IWaveformAnalyzer, AndroidWaveformAnalyzer>();
+        builder.Services.AddSingleton<IPcmDecoder, AndroidPcmDecoder>();
         builder.Services.AddSingleton<IFfmpegLocator, AndroidFfmpegLocator>();
         builder.Services.AddSingleton<IDownloadKeepAlive, AndroidDownloadKeepAlive>();
         builder.Services.AddSingleton<PlayerHost>();

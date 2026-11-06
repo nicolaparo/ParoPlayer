@@ -1,4 +1,4 @@
-<div class="pointer-events-none flex size-full items-center gap-px" aria-hidden="true">
+<div class="@(Loading ? "animate-pulse " : "")pointer-events-none flex size-full items-center gap-px" aria-hidden="true">
     @{
         var bars = Peaks ?? Flat;
         var played = (int)Math.Round(Math.Clamp(Progress, 0, 1) * bars.Length);
@@ -16,6 +16,9 @@
 
     /// <summary>Bar heights between 0 and 1. Null while they are being computed or when they cannot be.</summary>
     [Parameter] public float[]? Peaks { get; set; }
+
+    /// <summary>True while the levels are being computed: the placeholder bars pulse softly.</summary>
+    [Parameter] public bool Loading { get; set; }
 
     /// <summary>Played part of the track, between 0 and 1.</summary>
     [Parameter] public double Progress { get; set; }
