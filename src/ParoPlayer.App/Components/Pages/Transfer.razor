@@ -166,8 +166,16 @@
             .Where(nic => nic.OperationalStatus == OperationalStatus.Up && nic.NetworkInterfaceType != NetworkInterfaceType.Loopback)
             .SelectMany(nic => nic.GetIPProperties().UnicastAddresses)
             .Select(unicast => unicast.Address)
-            .FirstOrDefault(candidate => candidate.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(candidate));
+            .Where(candidate => candidate.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(candidate))
+            .OrderBy(candidate => IsPrivateLan(candidate) ? 0 : 1)
+            .FirstOrDefault();
         return ip is null ? null : $"http://{ip}:{port}/";
+    }
+
+    private static bool IsPrivateLan(IPAddress address)
+    {
+        var bytes = address.GetAddressBytes();
+        return bytes[0] == 10 || (bytes[0] == 192 && bytes[1] == 168) || (bytes[0] == 172 && bytes[1] is >= 16 and <= 31);
     }
 
     public async ValueTask DisposeAsync()
