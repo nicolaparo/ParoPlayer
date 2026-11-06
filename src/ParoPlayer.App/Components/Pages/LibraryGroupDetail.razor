@@ -32,7 +32,9 @@
 </Virtualize>
 
 @code {
-    [SupplyParameterFromQuery(Name = "kind")] public LibraryGroupKind Kind { get; set; }
+    [SupplyParameterFromQuery(Name = "kind")] public string KindName { get; set; } = "";
+
+    private LibraryGroupKind Kind => Enum.TryParse<LibraryGroupKind>(KindName, true, out var kind) ? kind : LibraryGroupKind.Folder;
 
     [SupplyParameterFromQuery(Name = "name")] public string Name { get; set; } = "";
 
