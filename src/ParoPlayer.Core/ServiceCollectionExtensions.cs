@@ -5,6 +5,7 @@ using ParoPlayer.Core.Download;
 using ParoPlayer.Core.Engine;
 using ParoPlayer.Core.Import;
 using ParoPlayer.Core.Services;
+using ParoPlayer.Core.Bpm;
 using ParoPlayer.Core.Tagging;
 using ParoPlayer.Core.Transfer;
 using SQLite;
@@ -28,6 +29,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<CoverStore>();
         services.TryAddSingleton<IWaveformAnalyzer, NoWaveformAnalyzer>();
         services.AddSingleton<WaveformStore>();
+        services.TryAddSingleton<IPcmDecoder, NoPcmDecoder>();
+        services.AddSingleton<IBpmTag, TagLibBpmTag>();
+        services.AddSingleton<BpmDetectionService>();
         services.AddSingleton<CoverBackfillService>();
         services.AddSingleton<TrackImportService>();
         services.AddSingleton<TrackEditService>();
